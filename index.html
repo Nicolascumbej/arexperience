@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR.js with Three.js and MediaPipe</title>
+  <title>AR.js con Three.js y MediaPipe</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
@@ -21,11 +21,9 @@
   <canvas id="output_canvas" width="1280" height="720"></canvas>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
     <a-assets>
-      <a-asset-item id="hatModel" src="https://github.com/Nicolascumbej/arexperience/blob/main/tmp2h0xvw1a.obj"></a-asset-item>
+      <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-marker preset="hiro">
-      <a-entity id="hat" obj-model="obj: #hatModel" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false"></a-entity>
-    </a-marker>
+    <a-entity id="hat" obj-model="obj: #hatModel" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false"></a-entity>
     <a-entity camera></a-entity>
   </a-scene>
   <script>
@@ -91,16 +89,19 @@
         const leftEar = landmarks[234];
         const rightEar = landmarks[454];
 
+        const faceWidth = Math.abs(leftEar.x - rightEar.x);
+        const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
+
         const position = {
-          x: (noseTip.x * 2 - 1) * 1.5,
-          y: -(noseTip.y * 2 - 1) * 1.5,
+          x: (noseTip.x - 0.5) * 1.5,
+          y: -(noseTip.y - 0.5) * 1.5,
           z: -0.5
         };
 
         const scale = {
-          x: Math.abs(leftEar.x - rightEar.x) * 10,
-          y: Math.abs(leftEar.y - rightEar.y) * 10,
-          z: Math.abs(leftEar.x - rightEar.x) * 10
+          x: faceWidth * 5,
+          y: faceHeight * 5,
+          z: faceWidth * 5
         };
 
         hat.setAttribute('position', position);
