@@ -10,15 +10,13 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
-    #output_canvas { display: none; }
     #startButton { position: absolute; top: 10px; right: 10px; padding: 5px 10px; border-radius: 4px; font-size: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div id="label">Cara reconocida</div>
   <button id="startButton">Iniciar cámara</button>
-  <video id="input_video" style="display:none;"></video>
-  <canvas id="output_canvas" width="1280" height="720"></canvas>
+  <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
@@ -28,8 +26,6 @@
   </a-scene>
   <script>
     const videoElement = document.getElementById('input_video');
-    const canvasElement = document.getElementById('output_canvas');
-    const canvasCtx = canvasElement.getContext('2d');
     const labelElement = document.getElementById('label');
     const startButton = document.getElementById('startButton');
 
@@ -67,9 +63,15 @@
           height: 720
         });
       }
-      cameraUtils.start();
-      isCameraRunning = true;
-      startButton.textContent = 'Detener cámara';
+      cameraUtils.start()
+        .then(() => {
+          isCameraRunning = true;
+          startButton.textContent = 'Detener cámara';
+        })
+        .catch((error) => {
+          console.error('Error al acceder a la cámara:', error);
+          alert('No se pudo acceder a la cámara. Verifica los permisos y asegúrate de que no esté siendo utilizada por otra aplicación.');
+        });
     }
 
     function stopCamera() {
