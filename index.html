@@ -21,33 +21,40 @@
     const canvasCtx = canvasElement.getContext('2d');
 
     // Inicializar Three.js
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    let scene, camera, renderer, hat;
 
-    const light = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(light);
+    try {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
 
-    // Cargar modelo 3D
-    const loader = new THREE.OBJLoader();
-    let hat;
+      const light = new THREE.AmbientLight(0xffffff, 1);
+      scene.add(light);
 
-    loader.load(
-      'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
-      function (object) {
-        hat = object;
-        scene.add(hat);
-      },
-      function (xhr) {
-        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-      },
-      function (error) {
-        console.error('An error happened', error);
-      }
-    );
+      // Cargar modelo 3D
+      const loader = new THREE.OBJLoader();
 
-    camera.position.z = 5;
+      loader.load(
+        'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
+        function (object) {
+          hat = object;
+          scene.add(hat);
+        },
+        function (xhr) {
+          console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        function (error) {
+          console.error('An error happened', error);
+        }
+      );
+
+      camera.position.z = 5;
+
+    } catch (error) {
+      console.error('Error creating WebGL context:', error);
+      alert('Error creating WebGL context. Please check your browser compatibility.');
+    }
 
     // Inicializar MediaPipe
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
@@ -96,8 +103,10 @@
     }
 
     function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
+      if (renderer && scene && camera) {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
     }
     animate();
   </script>
