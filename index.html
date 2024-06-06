@@ -24,7 +24,7 @@
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
     <a-marker preset="hiro">
-      <a-entity id="hat" obj-model="obj: #hatModel" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0"></a-entity>
+      <a-entity id="hat" obj-model="obj: #hatModel" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false"></a-entity>
     </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
@@ -83,34 +83,32 @@
     }
 
     function onResults(results) {
+      const hat = document.querySelector('#hat');
+
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
         const noseTip = landmarks[1];
         const leftEar = landmarks[234];
         const rightEar = landmarks[454];
 
-        const hat = document.querySelector('#hat');
+        const position = {
+          x: (noseTip.x * 2 - 1) * 1.5,
+          y: -(noseTip.y * 2 - 1) * 1.5,
+          z: -0.5
+        };
 
-        if (hat) {
-          const position = {
-            x: (noseTip.x * 2 - 1) * 1.5,
-            y: -(noseTip.y * 2 - 1) * 1.5,
-            z: -0.5
-          };
+        const scale = {
+          x: Math.abs(leftEar.x - rightEar.x) * 10,
+          y: Math.abs(leftEar.y - rightEar.y) * 10,
+          z: Math.abs(leftEar.x - rightEar.x) * 10
+        };
 
-          const scale = {
-            x: Math.abs(leftEar.x - rightEar.x) * 10,
-            y: Math.abs(leftEar.y - rightEar.y) * 10,
-            z: Math.abs(leftEar.x - rightEar.x) * 10
-          };
-
-          hat.setAttribute('position', position);
-          hat.setAttribute('scale', scale);
-          labelElement.style.display = 'block';
-        } else {
-          labelElement.style.display = 'none';
-        }
+        hat.setAttribute('position', position);
+        hat.setAttribute('scale', scale);
+        hat.setAttribute('visible', true);
+        labelElement.style.display = 'block';
       } else {
+        hat.setAttribute('visible', false);
         labelElement.style.display = 'none';
       }
     }
