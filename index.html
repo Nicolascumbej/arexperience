@@ -8,12 +8,14 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-    #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
+    #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; }
     #output_canvas { display: none; }
+    #startButton { position: absolute; top: 10px; right: 10px; padding: 5px 10px; border-radius: 4px; font-size: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div id="label">Cara reconocida</div>
+  <button id="startButton">Iniciar cámara</button>
   <video id="input_video" style="display:none;"></video>
   <canvas id="output_canvas" width="1280" height="720"></canvas>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
@@ -29,26 +31,55 @@
     const videoElement = document.getElementById('input_video');
     const canvasElement = document.getElementById('output_canvas');
     const canvasCtx = canvasElement.getContext('2d');
+    const labelElement = document.getElementById('label');
+    const startButton = document.getElementById('startButton');
+
+    let cameraUtils = null;
+    let isCameraRunning = false;
 
     // Inicializar MediaPipe
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
     faceMesh.setOptions({
       maxNumFaces: 1,
       refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      minDetectionConfidence: 0.8,
+      minTrackingConfidence: 0.8
     });
 
     faceMesh.onResults(onResults);
 
-    const cameraUtils = new Camera(videoElement, {
-      onFrame: async () => {
-        await faceMesh.send({ image: videoElement });
-      },
-      width: 1280,
-      height: 720
-    });
-    cameraUtils.start();
+    startButton.addEventListener('click', toggleCamera);
+
+    function toggleCamera() {
+      if (isCameraRunning) {
+        stopCamera();
+      } else {
+        startCamera();
+      }
+    }
+
+    function startCamera() {
+      if (!cameraUtils) {
+        cameraUtils = new Camera(videoElement, {
+          onFrame: async () => {
+            await faceMesh.send({ image: videoElement });
+          },
+          width: 1280,
+          height: 720
+        });
+      }
+      cameraUtils.start();
+      isCameraRunning = true;
+      startButton.textContent = 'Detener cámara';
+    }
+
+    function stopCamera() {
+      if (cameraUtils) {
+        cameraUtils.stop();
+      }
+      isCameraRunning = false;
+      startButton.textContent = 'Iniciar cámara';
+    }
 
     function onResults(results) {
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
@@ -74,7 +105,12 @@
 
           hat.setAttribute('position', position);
           hat.setAttribute('scale', scale);
+          labelElement.style.display = 'block';
+        } else {
+          labelElement.style.display = 'none';
         }
+      } else {
+        labelElement.style.display = 'none';
       }
     }
   </script>
