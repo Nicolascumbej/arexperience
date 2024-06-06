@@ -22,5 +22,36 @@
     </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
+  <script>
+    // Agregar mensajes de depuración
+    AFRAME.registerComponent('log', {
+      schema: { type: 'string' },
+      init: function () {
+        console.log(this.data);
+      }
+    });
+
+    // Verificar si el modelo se carga correctamente
+    document.querySelector('#hat').addEventListener('model-loaded', function () {
+      console.log('Modelo cargado correctamente');
+    });
+
+    document.querySelector('a-assets').addEventListener('loaded', function () {
+      console.log('Todos los assets han sido cargados');
+    });
+
+    document.querySelector('a-scene').addEventListener('loaded', function () {
+      console.log('Escena cargada');
+    });
+
+    // Mensaje de depuración al detectar el marcador
+    document.querySelector('a-marker').addEventListener('markerFound', function () {
+      console.log('Marcador encontrado');
+    });
+
+    document.querySelector('a-marker').addEventListener('markerLost', function () {
+      console.log('Marcador perdido');
+    });
+  </script>
 </body>
 </html>
