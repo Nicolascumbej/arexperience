@@ -18,7 +18,7 @@
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
     <a-marker preset="hiro">
-      <a-entity id="hat" obj-model="obj: #hatModel" scale="0.1 0.1 0.1" position="0 0 0"></a-entity>
+      <a-entity id="hat" obj-model="obj: #hatModel" scale="0.1 0.1 0.1" position="0 0 0" rotation="0 0 0"></a-entity>
     </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
@@ -51,6 +51,16 @@
 
     document.querySelector('a-marker').addEventListener('markerLost', function () {
       console.log('Marcador perdido');
+    });
+
+    // Verificar la posición del modelo
+    document.querySelector('a-marker').addEventListener('markerFound', function () {
+      const hat = document.querySelector('#hat');
+      if (hat) {
+        console.log('Posición del modelo:', hat.getAttribute('position'));
+        console.log('Rotación del modelo:', hat.getAttribute('rotation'));
+        console.log('Escala del modelo:', hat.getAttribute('scale'));
+      }
     });
   </script>
 </body>
