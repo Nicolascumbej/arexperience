@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AR.js with Three.js</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #label {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="label">Cara reconocida</div>
+  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
+    <a-assets>
+      <a-asset-item id="hatModel" src="tmp2h0xvw1a.obj"></a-asset-item>
+    </a-assets>
+    <a-marker preset="hiro">
+      <a-entity id="hat" obj-model="obj: #hatModel" scale="0.1 0.1 0.1" position="0 0 0"></a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+  <script>
+    AFRAME.registerComponent('log', {
+      schema: { type: 'string' },
+      init: function () {
+        console.log(this.data);
+      }
+    });
+
+    AFRAME.registerComponent('follow-face', {
+      init: function () {
+        this.camera = document.querySelector('[camera]').object3D;
+        this.label = document.getElementById('label');
+      },
+      tick: function () {
+        if (!this.camera || !this.label) {
+          return;
+        }
+
+        const camera = this.camera;
+        const label = this.label;
+        const screenPosition = new THREE.Vector3().copy(camera.position).project(camera);
+
+        const x = (screenPosition.x * window.innerWidth) / 2 + window.innerWidth / 2;
+        const y = -(screenPosition.y * window.innerHeight) / 2 + window.innerHeight / 2;
+
+        label.style.left = `${x}px`;
+        label.style.top = `${y}px`;
+        label.style.display = 'block';
+      }
+    });
+
+    AFRAME.registerComponent('markerhandler', {
+      init: function () {
+        const marker = this.el;
+        marker.addEventListener('markerFound', function() {
+          const label = document.getElementById('label');
+          if (label) {
+            label.style.display = 'block';
+          }
+        });
+        marker.addEventListener('markerLost', function() {
+          const label = document.getElementById('label');
+          if (label) {
+            label.style.display = 'none';
+          }
+        });
+      }
+    });
+
+    document.querySelector('a-marker').setAttribute('markerhandler', '');
+    document.querySelector('#hat').setAttribute('follow-face', '');
+  </script>
+</body>
+</html>
