@@ -4,12 +4,12 @@
   <title>AR.js with Three.js and MediaPipe</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
-    canvas { position: absolute; top: 0; left: 0; }
+    #output_canvas { display: none; }
   </style>
 </head>
 <body>
@@ -20,7 +20,9 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" obj-model="obj: #hatModel" scale="0.1 0.1 0.1" position="0 0 0"></a-entity>
+    <a-marker preset="hiro">
+      <a-entity id="hat" obj-model="obj: #hatModel" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0"></a-entity>
+    </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
   <script>
