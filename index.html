@@ -89,14 +89,14 @@
         // Ajuste de la posición y escala basado en las dimensiones del modelo
         const position = {
           x: (foreheadPosition.x - 0.5) * 2,
-          y: (foreheadPosition.y - 0.5) * -1.9, // Ajuste del eje Y para subir un poco la gorra
-          z: -0.15 // Ajuste del eje Z para acercar un poco más la gorra
+          y: (foreheadPosition.y - 0.5) * -2 - 0.15,
+          z: -0.2 // Ajuste del eje Z para posicionar correctamente la gorra
         };
 
         const scale = {
-          x: faceWidth * 0.9, // Ajuste de la escala en el eje X
-          y: faceHeight * 0.9, // Ajuste de la escala en el eje Y
-          z: faceWidth * 0.9 // Ajuste de la escala en el eje Z
+          x: faceWidth * 0.33, // Ajuste de la escala en el eje X
+          y: faceHeight * 0.33, // Ajuste de la escala en el eje Y
+          z: faceWidth * 0.33 // Ajuste de la escala en el eje Z
         };
 
         const dx = rightEyeInner.x - leftEyeInner.x;
