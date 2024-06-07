@@ -20,8 +20,8 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" scale="0.5 0.5 0.5" position="0 0 0" rotation="0 0 0" visible="false">
-      <a-obj-model src="#hatModel"></a-obj-model>
+    <a-entity id="hat" scale="0.1 0.1 0.1" position="0 0 0" rotation="0 0 0" visible="false">
+      <a-obj-model src="#hatModel" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
     </a-entity>
     <a-entity camera></a-entity>
   </a-scene>
@@ -32,6 +32,7 @@
 
     let cameraUtils = null;
 
+    // Inicializar MediaPipe
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
     faceMesh.setOptions({
       maxNumFaces: 1,
@@ -42,6 +43,7 @@
 
     faceMesh.onResults(onResults);
 
+    // Iniciar la cámara automáticamente
     startCamera();
 
     function startCamera() {
@@ -66,7 +68,6 @@
 
     async function onResults(results) {
       const hat = document.querySelector('#hat');
-      const hatModel = document.querySelector('#hatModel');
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -91,13 +92,13 @@
         const position = {
           x: (foreheadPosition.x - 0.5) * 2,
           y: (foreheadPosition.y - 0.5) * -2 - 0.15,
-          z: -0.5 // Ajuste del eje Z para posicionar correctamente la gorra
+          z: -0.2 // Ajuste del eje Z para posicionar correctamente la gorra
         };
 
         const scale = {
-          x: 0.1,
-          y: 0.1,
-          z: 0.1
+          x: faceWidth * 3,
+          y: faceHeight * 3,
+          z: faceWidth * 3
         };
 
         const dx = rightEyeInner.x - leftEyeInner.x;
@@ -109,7 +110,7 @@
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `0 0 ${angle}`);
+        hat.setAttribute('rotation', `0 ${angle} 0`);
         hat.setAttribute('visible', true);
 
         modelInfoElement.textContent = 'Modelo cargado correctamente';
