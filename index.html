@@ -84,63 +84,64 @@
       startButton.textContent = 'Iniciar cámara';
     }
 
-    function onResults(results) {
-      const hat = document.querySelector('#hat');
-      const modelInfoElement = document.getElementById('modelInfo');
+  function onResults(results) {
+  const hat = document.querySelector('#hat');
+  const modelInfoElement = document.getElementById('modelInfo');
 
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        const landmarks = results.multiFaceLandmarks[0];
-        const noseTip = landmarks[1];
-        const leftEar = landmarks[234];
-        const rightEar = landmarks[454];
+  if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+    const landmarks = results.multiFaceLandmarks[0];
+    const noseTip = landmarks[1];
+    const leftEar = landmarks[234];
+    const rightEar = landmarks[454];
+    const foreheadCenter = landmarks[10];
 
-        const faceWidth = Math.abs(leftEar.x - rightEar.x);
-        const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
+    const faceWidth = Math.abs(leftEar.x - rightEar.x);
+    const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
 
-        // Calcular el área aproximada de la cara
-        const faceArea = faceWidth * faceHeight;
+    // Calcular el área aproximada de la cara
+    const faceArea = faceWidth * faceHeight;
 
-        // Obtener los puntos del contorno de la cabeza
-        const headContour = [
-          landmarks[10],  // Frente izquierda
-          landmarks[9],   // Centro de la frente
-          landmarks[8],   // Frente derecha
-          landmarks[168], // Sien derecha
-          landmarks[397], // Oreja derecha
-          landmarks[378], // Nuca derecha
-          landmarks[152], // Nuca izquierda
-          landmarks[127], // Oreja izquierda
-          landmarks[162]  // Sien izquierda
-        ];
+    // Obtener los puntos del contorno de la cabeza
+    const headContour = [
+      landmarks[10],  // Frente izquierda
+      landmarks[9],   // Centro de la frente
+      landmarks[8],   // Frente derecha
+      landmarks[168], // Sien derecha
+      landmarks[397], // Oreja derecha
+      landmarks[378], // Nuca derecha
+      landmarks[152], // Nuca izquierda
+      landmarks[127], // Oreja izquierda
+      landmarks[162]  // Sien izquierda
+    ];
 
-        // Mostrar información de la cara
-        labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}<br>Contorno de la cabeza: ${headContour.length} puntos`;
-        labelElement.style.display = 'block';
+    // Mostrar información de la cara
+    labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}<br>Contorno de la cabeza: ${headContour.length} puntos`;
+    labelElement.style.display = 'block';
 
-        const position = {
-          x: (noseTip.x - 0.5) * 1.5,
-          y: -(noseTip.y - 0.5) * 1.5,
-          z: -0.5
-        };
+    const position = {
+      x: foreheadCenter.x * 2 - 1,
+      y: foreheadCenter.y * 2 - 1,
+      z: -0.5
+    };
 
-        const scale = {
-          x: faceWidth * 5,
-          y: faceHeight * 5,
-          z: faceWidth * 5
-        };
+    const scale = {
+      x: faceWidth * 2,
+      y: faceHeight * 2,
+      z: (faceWidth + faceHeight) / 2
+    };
 
-        hat.setAttribute('position', position);
-        hat.setAttribute('scale', scale);
-        hat.setAttribute('visible', true);
+    hat.setAttribute('position', position);
+    hat.setAttribute('scale', scale);
+    hat.setAttribute('visible', true);
 
-        modelInfoElement.textContent = 'Modelo cargado correctamente';
-        modelInfoElement.style.display = 'block';
-      } else {
-        hat.setAttribute('visible', false);
-        labelElement.style.display = 'none';
-        modelInfoElement.style.display = 'none';
-      }
-    }
+    modelInfoElement.textContent = 'Modelo cargado correctamente';
+    modelInfoElement.style.display = 'block';
+  } else {
+    hat.setAttribute('visible', false);
+    labelElement.style.display = 'none';
+    modelInfoElement.style.display = 'none';
+  }
+}
   </script>
 </body>
 </html>
