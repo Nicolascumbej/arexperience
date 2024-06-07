@@ -20,7 +20,7 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false">
+    <a-entity id="hat" scale="0.3 0.3 0.3" position="0 0 0" rotation="0 0 0" visible="false">
       <a-obj-model src="#hatModel"></a-obj-model>
     </a-entity>
     <a-entity camera></a-entity>
@@ -86,16 +86,17 @@
         labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}`;
         labelElement.style.display = 'block';
 
+        // Ajuste de posición y escala del modelo
         const position = {
           x: (foreheadCenter.x - 0.5) * 2,
-          y: (foreheadCenter.y - 0.5) * -2,
+          y: (foreheadCenter.y - 0.6) * -2, // Ajustar para bajar el modelo
           z: 0
         };
 
         const scale = {
-          x: faceWidth * 2,
-          y: faceHeight * 2,
-          z: faceWidth * 2
+          x: faceWidth * 1.5, // Reducir la escala
+          y: faceHeight * 1.5,
+          z: faceWidth * 1.5
         };
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
