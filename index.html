@@ -157,24 +157,24 @@
         const position = {
           x: kalmanFilterX.filter((foreheadPosition.x - 0.5) * 2),
           y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.3),
-          z: kalmanFilterZ.filter(-0.5)
+          z: kalmanFilterZ.filter(-0.2)
         };
 
         // Ajustar la escala de la gorra basándose en el área de la cara
         const scale = {
-          x: Math.sqrt(faceArea) * 0.4,
-          y: faceHeight * 0.4,
-          z: Math.sqrt(faceArea) * 0.4
+          x: Math.sqrt(faceArea) * 0.25,
+          y: faceHeight * 0.25,
+          z: Math.sqrt(faceArea) * 0.25
         };
 
         // Calcular las rotaciones en los ejes X, Y y Z
         const dx = rightEyeInner.x - leftEyeInner.x;
         const dy = rightEyeInner.y - leftEyeInner.y;
-        const dz = foreheadCenter.z - chin.z;
+        const dz = rightEyeInner.z - leftEyeInner.z;
 
         const angleX = Math.atan2(dy, dz) * (180 / Math.PI);
-        const angleY = Math.atan2(dy, dx) * (180 / Math.PI);
-        const angleZ = Math.atan2(dz, dx) * (180 / Math.PI);
+        const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
+        const angleZ = Math.atan2(dy, dx) * (180 / Math.PI);
 
         const rotation = {
           x: kalmanFilterAngleX.filter(angleX),
