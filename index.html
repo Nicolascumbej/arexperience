@@ -22,7 +22,7 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" scale="0.1 0.1 0.1" position="0 0 0" rotation="0 0 0" visible="false">
+    <a-entity id="hat" scale="0.15 0.15 0.15" position="0 0 0" rotation="0 0 0" visible="false">
       <a-obj-model src="#hatModel" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
     </a-entity>
     <a-entity camera></a-entity>
@@ -114,17 +114,6 @@
       return { minX, minY, maxX, maxY };
     }
 
-    function detectCollision(headBoundingBox, hatBoundingBox) {
-      // Verificar colisiones entre la gorra y la cabeza
-      if (hatBoundingBox.minX < headBoundingBox.maxX &&
-          hatBoundingBox.maxX > headBoundingBox.minX &&
-          hatBoundingBox.minY < headBoundingBox.maxY &&
-          hatBoundingBox.maxY > headBoundingBox.minY) {
-        return true;
-      }
-      return false;
-    }
-
     async function onResults(results) {
       const hat = document.querySelector('#hat');
 
@@ -194,22 +183,10 @@
           z: kalmanFilterAngleZ.filter(angleZ)
         };
 
-        // Obtener la caja delimitadora de la gorra
-        const hatBoundingBox = {
-          minX: position.x - scale.x / 2,
-          minY: position.y - scale.y / 2,
-          maxX: position.x + scale.x / 2,
-          maxY: position.y + scale.y / 2
-        };
-
-        // Detectar colisión y ajustar la gorra si es necesario
-        if (detectCollision(boundingBox, hatBoundingBox)) {
-          position.z = kalmanFilterZ.filter(-0.6);  // Ajustar la posición Z para evitar la colisión
-        }
-
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
+        // Ajustar la posición de la gorra
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
         hat.setAttribute('rotation', `${rotation.x} ${rotation.y} ${rotation.z}`);
