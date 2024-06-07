@@ -19,19 +19,20 @@
   <div id="modelInfo">Información del modelo</div>
   <button id="startButton">Iniciar cámara</button>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
- <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
-  <a-assets>
-    <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
-  </a-assets>
-  <a-entity id="hat" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false">
-    <a-obj-model src="#hatModel"></a-obj-model>
-  </a-entity>
-  <a-entity camera></a-entity>
-</a-scene>
+  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
+    <a-assets>
+      <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
+    </a-assets>
+    <a-entity id="hat" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false">
+      <a-obj-model src="#hatModel"></a-obj-model>
+    </a-entity>
+    <a-entity camera></a-entity>
+  </a-scene>
   <script>
     const videoElement = document.getElementById('input_video');
     const labelElement = document.getElementById('label');
     const startButton = document.getElementById('startButton');
+    const modelInfoElement = document.getElementById('modelInfo');
 
     let cameraUtils = null;
     let isCameraRunning = false;
@@ -86,7 +87,7 @@
       startButton.textContent = 'Iniciar cámara';
     }
 
-     function loadHatModel(modelPath, onLoad, onError) {
+    function loadHatModel(modelPath, onLoad, onError) {
       const loader = new THREE.OBJLoader();
       loader.load(
         modelPath,
@@ -103,9 +104,9 @@
         }
       );
     }
+
     function onResults(results) {
       const hat = document.querySelector('#hat');
-      const modelInfoElement = document.getElementById('modelInfo');
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -116,10 +117,8 @@
         const faceWidth = Math.abs(leftEar.x - rightEar.x);
         const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
 
-        // Calcular el área aproximada de la cara
         const faceArea = faceWidth * faceHeight;
 
-        // Obtener los puntos del contorno de la cabeza
         const headContour = [
           landmarks[10],  // Frente izquierda
           landmarks[9],   // Centro de la frente
@@ -132,7 +131,6 @@
           landmarks[162]  // Sien izquierda
         ];
 
-        // Mostrar información de la cara
         labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}<br>Contorno de la cabeza: ${headContour.length} puntos`;
         labelElement.style.display = 'block';
 
@@ -151,7 +149,6 @@
         hat.setAttribute('position', position);
         hat.setAttribute('scale', scale);
 
-        // Cargar el modelo del sombrero
         loadHatModel(
           'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
           (hatObject) => {
