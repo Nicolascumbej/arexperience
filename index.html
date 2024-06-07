@@ -84,13 +84,14 @@
       startButton.textContent = 'Iniciar cámara';
     }
 
-    // Cargar el modelo del sombrero manualmente
-    function loadHatModel(modelPath, onLoad, onError) {
+     function loadHatModel(modelPath, onLoad, onError) {
       const loader = new THREE.OBJLoader();
       loader.load(
         modelPath,
         (object) => {
-          onLoad(object);
+          const hatObject = new THREE.Object3D();
+          hatObject.add(object);
+          onLoad(hatObject);
         },
         (progress) => {
           console.log(`Cargando modelo: ${Math.round(progress.loaded / progress.total * 100)}%`);
@@ -100,7 +101,6 @@
         }
       );
     }
-
     function onResults(results) {
       const hat = document.querySelector('#hat');
       const modelInfoElement = document.getElementById('modelInfo');
