@@ -103,6 +103,17 @@
     const kalmanFilterAngleY = new KalmanFilter({ R: 0.01, Q: 3, A: 1, B: 0, C: 1 });
     const kalmanFilterAngleZ = new KalmanFilter({ R: 0.01, Q: 3, A: 1, B: 0, C: 1 });
 
+    function calculateBoundingBox(landmarks) {
+      let minX = 1.0, minY = 1.0, maxX = 0.0, maxY = 0.0;
+      landmarks.forEach(landmark => {
+        minX = Math.min(minX, landmark.x);
+        minY = Math.min(minY, landmark.y);
+        maxX = Math.max(maxX, landmark.x);
+        maxY = Math.max(maxY, landmark.y);
+      });
+      return { minX, minY, maxX, maxY };
+    }
+
     async function onResults(results) {
       const hat = document.querySelector('#hat');
 
@@ -131,43 +142,32 @@
         canvasCtx.stroke();
         canvasCtx.restore();
 
-        const leftEyeInner = landmarks[133];
-        const rightEyeInner = landmarks[362];
-        const foreheadCenter = landmarks[10];
-        const chin = landmarks[152];
-        const leftEar = landmarks[234];
-        const rightEar = landmarks[454];
+        const boundingBox = calculateBoundingBox(landmarks);
 
-        // Añadir más puntos de referencia para mayor precisión
-        const noseTip = landmarks[1];
-        const leftTemple = landmarks[103];
-        const rightTemple = landmarks[332];
+        // Calcular el centro de la cabeza
+        const centerX = (boundingBox.minX + boundingBox.maxX) / 2;
+        const centerY = (boundingBox.minY + boundingBox.maxY) / 2;
 
-        const faceWidth = Math.abs(leftEar.x - rightEar.x);
-        const faceHeight = Math.abs(foreheadCenter.y - chin.y);
-        const faceArea = faceWidth * faceHeight;
-        const facePerimeter = 2 * (faceWidth + faceHeight);
+        // Calcular la anchura y altura de la cabeza
+        const headWidth = boundingBox.maxX - boundingBox.minX;
+        const headHeight = boundingBox.maxY - boundingBox.minY;
 
-        const foreheadPosition = {
-          x: (leftEyeInner.x + rightEyeInner.x) / 2,
-          y: (leftEyeInner.y + rightEyeInner.y) / 2
-        };
-
-        // Calcular la posición de la gorra en función de más puntos de referencia
         const position = {
-          x: kalmanFilterX.filter((foreheadPosition.x - 0.5) * 2),
-          y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.25),
-          z: kalmanFilterZ.filter(-0.25)
+          x: kalmanFilterX.filter((centerX - 0.5) * 2),
+          y: kalmanFilterY.filter((centerY - 0.5) * -2 - 0.1),
+          z: kalmanFilterZ.filter(-0.3)
         };
 
-        // Ajustar la escala de la gorra basándose en el área de la cabeza
         const scale = {
-          x: Math.sqrt(faceArea) * 0.6,
-          y: faceHeight * 0.6,
-          z: Math.sqrt(faceArea) * 0.6
+          x: headWidth * 1.2,
+          y: headHeight * 1.2,
+          z: headWidth * 1.2
         };
 
         // Calcular las rotaciones en los ejes X, Y y Z
+        const leftEyeInner = landmarks[133];
+        const rightEyeInner = landmarks[362];
+
         const dx = rightEyeInner.x - leftEyeInner.x;
         const dy = rightEyeInner.y - leftEyeInner.y;
         const dz = rightEyeInner.z - leftEyeInner.z;
@@ -182,7 +182,7 @@
           z: kalmanFilterAngleZ.filter(angleZ)
         };
 
-        labelElement.innerHTML = `Anchura de la cabeza: ${faceWidth.toFixed(2)}<br>Altura de la cabeza: ${faceHeight.toFixed(2)}<br>Área de la cabeza: ${faceArea.toFixed(2)}<br>Perímetro de la cabeza: ${facePerimeter.toFixed(2)}`;
+        labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
