@@ -9,14 +9,12 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
-    #startButton { position: absolute; top: 10px; right: 10px; padding: 5px 10px; border-radius: 4px; font-size: 16px; cursor: pointer; }
     #modelInfo { position: absolute; bottom: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
   </style>
 </head>
 <body>
   <div id="label">Cara reconocida</div>
   <div id="modelInfo">Información del modelo</div>
-  <button id="startButton">Iniciar cámara</button>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
     <a-assets>
@@ -30,10 +28,9 @@
   <script>
     const videoElement = document.getElementById('input_video');
     const labelElement = document.getElementById('label');
-    const startButton = document.getElementById('startButton');
+    const modelInfoElement = document.getElementById('modelInfo');
 
     let cameraUtils = null;
-    let isCameraRunning = false;
 
     // Inicializar MediaPipe
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
@@ -46,15 +43,8 @@
 
     faceMesh.onResults(onResults);
 
-    startButton.addEventListener('click', toggleCamera);
-
-    function toggleCamera() {
-      if (isCameraRunning) {
-        stopCamera();
-      } else {
-        startCamera();
-      }
-    }
+    // Iniciar la cámara automáticamente
+    startCamera();
 
     function startCamera() {
       if (!cameraUtils) {
@@ -68,8 +58,7 @@
       }
       cameraUtils.start()
         .then(() => {
-          isCameraRunning = true;
-          startButton.textContent = 'Detener cámara';
+          console.log('Cámara iniciada');
         })
         .catch((error) => {
           console.error('Error al acceder a la cámara:', error);
@@ -77,17 +66,8 @@
         });
     }
 
-    function stopCamera() {
-      if (cameraUtils) {
-        cameraUtils.stop();
-      }
-      isCameraRunning = false;
-      startButton.textContent = 'Iniciar cámara';
-    }
-
     function onResults(results) {
       const hat = document.querySelector('#hat');
-      const modelInfoElement = document.getElementById('modelInfo');
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
