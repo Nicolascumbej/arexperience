@@ -92,7 +92,10 @@
       }
     }
 
-    const kalmanFilter = new KalmanFilter({ R: 0.01, Q: 3, A: 1, B: 0, C: 1 });
+    const kalmanFilterX = new KalmanFilter({ R: 0.01, Q: 3, A: 1, B: 0, C: 1 });
+    const kalmanFilterY = new KalmanFilter({ R: 0.01, Q: 3, A: 1, B: 0, C: 1 });
+    const kalmanFilterZ = new KalmanFilter({ R: 0.01, Q: 3, A: 1, B: 0, C: 1 });
+    const kalmanFilterAngle = new KalmanFilter({ R: 0.01, Q: 3, A: 1, B: 0, C: 1 });
 
     async function onResults(results) {
       const hat = document.querySelector('#hat');
@@ -117,15 +120,15 @@
         };
 
         const position = {
-          x: kalmanFilter.filter((foreheadPosition.x - 0.5) * 2),
-          y: kalmanFilter.filter((foreheadPosition.y - 0.5) * -2 - 0.15),
-          z: -0.2
+          x: kalmanFilterX.filter((foreheadPosition.x - 0.5) * 2),
+          y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.15),
+          z: kalmanFilterZ.filter(-0.2)
         };
 
         const scale = {
-          x: kalmanFilter.filter(faceWidth * 1),
-          y: kalmanFilter.filter(faceHeight * 1),
-          z: kalmanFilter.filter(faceWidth * 1)
+          x: faceWidth * 1,
+          y: faceHeight * 1,
+          z: faceWidth * 1
         };
 
         const dx = rightEyeInner.x - leftEyeInner.x;
@@ -134,7 +137,7 @@
 
         const rotation = {
           x: 0,
-          y: kalmanFilter.filter(-angle),
+          y: kalmanFilterAngle.filter(-angle),
           z: 0
         };
 
