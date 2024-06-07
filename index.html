@@ -84,7 +84,7 @@
       startButton.textContent = 'Iniciar cámara';
     }
 
-  function onResults(results) {
+function onResults(results) {
   const hat = document.querySelector('#hat');
   const modelInfoElement = document.getElementById('modelInfo');
 
@@ -119,19 +119,20 @@
     labelElement.style.display = 'block';
 
     const position = {
-      x: foreheadCenter.x * 2 - 1,
-      y: foreheadCenter.y * 2 - 1,
-      z: -0.5
+      x: foreheadCenter.x * 1.2 - 0.6,
+      y: foreheadCenter.y * 1.2 - 0.6,
+      z: -0.3
     };
 
     const scale = {
-      x: faceWidth * 2,
-      y: faceHeight * 2,
-      z: (faceWidth + faceHeight) / 2
+      x: faceWidth * 0.8,
+      y: faceHeight * 0.8,
+      z: (faceWidth + faceHeight) / 4
     };
 
     hat.setAttribute('position', position);
     hat.setAttribute('scale', scale);
+    hat.setAttribute('rotation', '-20 0 0');
     hat.setAttribute('visible', true);
 
     modelInfoElement.textContent = 'Modelo cargado correctamente';
