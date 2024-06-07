@@ -19,13 +19,15 @@
   <div id="modelInfo">Información del modelo</div>
   <button id="startButton">Iniciar cámara</button>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
-  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
-    <a-assets>
-      <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
-    </a-assets>
-    <a-entity id="hat" obj-model="obj: #hatModel" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false"></a-entity>
-    <a-entity camera></a-entity>
-  </a-scene>
+ <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
+  <a-assets>
+    <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
+  </a-assets>
+  <a-entity id="hat" scale="0.05 0.05 0.05" position="0 0 0" rotation="0 0 0" visible="false">
+    <a-obj-model src="#hatModel"></a-obj-model>
+  </a-entity>
+  <a-entity camera></a-entity>
+</a-scene>
   <script>
     const videoElement = document.getElementById('input_video');
     const labelElement = document.getElementById('label');
