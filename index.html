@@ -22,7 +22,7 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" scale="0.1 0.1 0.1" position="0 0 0" rotation="0 0 0" visible="false">
+    <a-entity id="hat" scale="0.5 0.5 0.5" position="0 0 0" rotation="0 0 0" visible="false">
       <a-obj-model src="#hatModel" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
     </a-entity>
     <a-entity camera></a-entity>
@@ -167,10 +167,11 @@
         // Calcular las rotaciones en los ejes X, Y y Z
         const leftEyeInner = landmarks[133];
         const rightEyeInner = landmarks[362];
+        const noseTip = landmarks[1];
 
         const dx = rightEyeInner.x - leftEyeInner.x;
         const dy = rightEyeInner.y - leftEyeInner.y;
-        const dz = rightEyeInner.z - leftEyeInner.z;
+        const dz = noseTip.z;
 
         const angleX = Math.atan2(dy, dz) * (180 / Math.PI);
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
@@ -178,7 +179,7 @@
 
         const rotation = {
           x: kalmanFilterAngleX.filter(angleX),
-          y: kalmanFilterAngleY.filter(-angleY),
+          y: kalmanFilterAngleY.filter(-angleY + 180),
           z: kalmanFilterAngleZ.filter(angleZ)
         };
 
