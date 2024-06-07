@@ -5,8 +5,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
@@ -32,7 +30,6 @@
     const videoElement = document.getElementById('input_video');
     const labelElement = document.getElementById('label');
     const startButton = document.getElementById('startButton');
-    const modelInfoElement = document.getElementById('modelInfo');
 
     let cameraUtils = null;
     let isCameraRunning = false;
@@ -87,26 +84,9 @@
       startButton.textContent = 'Iniciar cámara';
     }
 
-    function loadHatModel(modelPath, onLoad, onError) {
-      const loader = new THREE.OBJLoader();
-      loader.load(
-        modelPath,
-        (object) => {
-          const hatObject = new THREE.Object3D();
-          hatObject.add(object);
-          onLoad(hatObject);
-        },
-        (progress) => {
-          console.log(`Cargando modelo: ${Math.round(progress.loaded / progress.total * 100)}%`);
-        },
-        (error) => {
-          onError(error);
-        }
-      );
-    }
-
     function onResults(results) {
       const hat = document.querySelector('#hat');
+      const modelInfoElement = document.getElementById('modelInfo');
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -117,8 +97,10 @@
         const faceWidth = Math.abs(leftEar.x - rightEar.x);
         const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
 
+        // Calcular el área aproximada de la cara
         const faceArea = faceWidth * faceHeight;
 
+        // Obtener los puntos del contorno de la cabeza
         const headContour = [
           landmarks[10],  // Frente izquierda
           landmarks[9],   // Centro de la frente
@@ -131,6 +113,7 @@
           landmarks[162]  // Sien izquierda
         ];
 
+        // Mostrar información de la cara
         labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}<br>Contorno de la cabeza: ${headContour.length} puntos`;
         labelElement.style.display = 'block';
 
@@ -148,21 +131,10 @@
 
         hat.setAttribute('position', position);
         hat.setAttribute('scale', scale);
+        hat.setAttribute('visible', true);
 
-        loadHatModel(
-          'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
-          (hatObject) => {
-            hat.setObject3D('mesh', hatObject);
-            hat.setAttribute('visible', true);
-            modelInfoElement.textContent = 'Modelo cargado correctamente';
-            modelInfoElement.style.display = 'block';
-          },
-          (error) => {
-            console.error('Error al cargar el modelo del sombrero:', error);
-            modelInfoElement.textContent = 'Error al cargar el modelo';
-            modelInfoElement.style.display = 'block';
-          }
-        );
+        modelInfoElement.textContent = 'Modelo cargado correctamente';
+        modelInfoElement.style.display = 'block';
       } else {
         hat.setAttribute('visible', false);
         labelElement.style.display = 'none';
