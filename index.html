@@ -146,14 +146,14 @@
 
         const position = {
           x: kalmanFilterX.filter((foreheadPosition.x - 0.5) * 2),
-          y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.15),
-          z: kalmanFilterZ.filter(-0.2)
+          y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.25),
+          z: kalmanFilterZ.filter(-0.6)
         };
 
         const scale = {
-          x: faceWidth * 0.5, // Ajuste de la escala de la gorra
-          y: faceHeight * 0.5,
-          z: faceWidth * 0.5
+          x: faceWidth * 0.8, // Ajuste de la escala de la gorra
+          y: faceHeight * 0.8,
+          z: faceWidth * 0.8
         };
 
         const dx = rightEyeInner.x - leftEyeInner.x;
