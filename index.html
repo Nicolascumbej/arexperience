@@ -114,6 +114,17 @@
       return { minX, minY, maxX, maxY };
     }
 
+    function detectCollision(headBoundingBox, hatBoundingBox) {
+      // Verificar colisiones entre la gorra y la cabeza
+      if (hatBoundingBox.minX < headBoundingBox.maxX &&
+          hatBoundingBox.maxX > headBoundingBox.minX &&
+          hatBoundingBox.minY < headBoundingBox.maxY &&
+          hatBoundingBox.maxY > headBoundingBox.minY) {
+        return true;
+      }
+      return false;
+    }
+
     async function onResults(results) {
       const hat = document.querySelector('#hat');
 
@@ -182,6 +193,19 @@
           y: kalmanFilterAngleY.filter(-angleY + 180),
           z: kalmanFilterAngleZ.filter(angleZ)
         };
+
+        // Obtener la caja delimitadora de la gorra
+        const hatBoundingBox = {
+          minX: position.x - scale.x / 2,
+          minY: position.y - scale.y / 2,
+          maxX: position.x + scale.x / 2,
+          maxY: position.y + scale.y / 2
+        };
+
+        // Detectar colisión y ajustar la gorra si es necesario
+        if (detectCollision(boundingBox, hatBoundingBox)) {
+          position.z = kalmanFilterZ.filter(-0.6);  // Ajustar la posición Z para evitar la colisión
+        }
 
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
