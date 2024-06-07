@@ -156,15 +156,15 @@
         // Calcular la posición de la gorra en función de más puntos de referencia
         const position = {
           x: kalmanFilterX.filter((foreheadPosition.x - 0.5) * 2),
-          y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.3),
-          z: kalmanFilterZ.filter(-0.2)
+          y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.25),
+          z: kalmanFilterZ.filter(-0.25)
         };
 
         // Ajustar la escala de la gorra basándose en el área de la cara
         const scale = {
-          x: Math.sqrt(faceArea) * 0.25,
-          y: faceHeight * 0.25,
-          z: Math.sqrt(faceArea) * 0.25
+          x: Math.sqrt(faceArea) * 0.6,
+          y: faceHeight * 0.6,
+          z: Math.sqrt(faceArea) * 0.6
         };
 
         // Calcular las rotaciones en los ejes X, Y y Z
