@@ -5,6 +5,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.6.0/aframe/build/aframe-ar.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
@@ -84,65 +85,52 @@
       startButton.textContent = 'Iniciar cámara';
     }
 
-function onResults(results) {
-  const hat = document.querySelector('#hat');
-  const modelInfoElement = document.getElementById('modelInfo');
+    function onResults(results) {
+      const hat = document.querySelector('#hat');
+      const modelInfoElement = document.getElementById('modelInfo');
 
-  if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-    const landmarks = results.multiFaceLandmarks[0];
-    const noseTip = landmarks[1];
-    const leftEar = landmarks[234];
-    const rightEar = landmarks[454];
-    const foreheadCenter = landmarks[10];
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0];
+        const noseTip = landmarks[1];
+        const leftEar = landmarks[234];
+        const rightEar = landmarks[454];
+        const foreheadCenter = landmarks[10];
 
-    const faceWidth = Math.abs(leftEar.x - rightEar.x);
-    const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
+        const faceWidth = Math.abs(leftEar.x - rightEar.x);
+        const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
 
-    // Calcular el área aproximada de la cara
-    const faceArea = faceWidth * faceHeight;
+        // Calcular el área aproximada de la cara
+        const faceArea = faceWidth * faceHeight;
 
-    // Obtener los puntos del contorno de la cabeza
-    const headContour = [
-      landmarks[10],  // Frente izquierda
-      landmarks[9],   // Centro de la frente
-      landmarks[8],   // Frente derecha
-      landmarks[168], // Sien derecha
-      landmarks[397], // Oreja derecha
-      landmarks[378], // Nuca derecha
-      landmarks[152], // Nuca izquierda
-      landmarks[127], // Oreja izquierda
-      landmarks[162]  // Sien izquierda
-    ];
+        // Mostrar información de la cara
+        labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}`;
+        labelElement.style.display = 'block';
 
-    // Mostrar información de la cara
-    labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}<br>Contorno de la cabeza: ${headContour.length} puntos`;
-    labelElement.style.display = 'block';
+        const position = {
+          x: (foreheadCenter.x - 0.5) * 2,
+          y: (foreheadCenter.y - 0.5) * -2,
+          z: 0
+        };
 
-    const position = {
-      x: foreheadCenter.x * 1.2 - 0.6,
-      y: foreheadCenter.y * 1.2 - 0.6,
-      z: -0.3
-    };
+        const scale = {
+          x: faceWidth * 2,
+          y: faceHeight * 2,
+          z: faceWidth * 2
+        };
 
-    const scale = {
-      x: faceWidth * 0.8,
-      y: faceHeight * 0.8,
-      z: (faceWidth + faceHeight) / 4
-    };
+        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+        hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
+        hat.setAttribute('rotation', '-20 0 0');
+        hat.setAttribute('visible', true);
 
-    hat.setAttribute('position', position);
-    hat.setAttribute('scale', scale);
-    hat.setAttribute('rotation', '-20 0 0');
-    hat.setAttribute('visible', true);
-
-    modelInfoElement.textContent = 'Modelo cargado correctamente';
-    modelInfoElement.style.display = 'block';
-  } else {
-    hat.setAttribute('visible', false);
-    labelElement.style.display = 'none';
-    modelInfoElement.style.display = 'none';
-  }
-}
+        modelInfoElement.textContent = 'Modelo cargado correctamente';
+        modelInfoElement.style.display = 'block';
+      } else {
+        hat.setAttribute('visible', false);
+        labelElement.style.display = 'none';
+        modelInfoElement.style.display = 'none';
+      }
+    }
   </script>
 </body>
 </html>
