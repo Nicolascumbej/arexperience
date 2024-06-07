@@ -94,6 +94,26 @@
         const faceWidth = Math.abs(leftEar.x - rightEar.x);
         const faceHeight = Math.abs(noseTip.y - (leftEar.y + rightEar.y) / 2);
 
+        // Calcular el área aproximada de la cara
+        const faceArea = faceWidth * faceHeight;
+
+        // Obtener los puntos del contorno de la cabeza
+        const headContour = [
+          landmarks[10],  // Frente izquierda
+          landmarks[9],   // Centro de la frente
+          landmarks[8],   // Frente derecha
+          landmarks[168], // Sien derecha
+          landmarks[397], // Oreja derecha
+          landmarks[378], // Nuca derecha
+          landmarks[152], // Nuca izquierda
+          landmarks[127], // Oreja izquierda
+          landmarks[162]  // Sien izquierda
+        ];
+
+        // Mostrar información de la cara
+        labelElement.innerHTML = `Área de la cara: ${faceArea.toFixed(2)}<br>Contorno de la cabeza: ${headContour.length} puntos`;
+        labelElement.style.display = 'block';
+
         const position = {
           x: (noseTip.x - 0.5) * 1.5,
           y: -(noseTip.y - 0.5) * 1.5,
@@ -109,7 +129,6 @@
         hat.setAttribute('position', position);
         hat.setAttribute('scale', scale);
         hat.setAttribute('visible', true);
-        labelElement.style.display = 'block';
       } else {
         hat.setAttribute('visible', false);
         labelElement.style.display = 'none';
