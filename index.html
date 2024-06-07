@@ -71,26 +71,30 @@
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
+        
+        // Utilizar más puntos de referencia para una mejor precisión
         const noseTip = landmarks[1];
         const leftEar = landmarks[234];
         const rightEar = landmarks[454];
+        const leftEyeInner = landmarks[133];
+        const rightEyeInner = landmarks[362];
         const foreheadCenter = landmarks[10];
         const chin = landmarks[152];
-        
+
         // Calcular la anchura y altura de la cara
         const faceWidth = Math.abs(leftEar.x - rightEar.x);
         const faceHeight = Math.abs(foreheadCenter.y - chin.y);
 
-        // Calcular la posición promedio de la frente
+        // Calcular el centro de la frente
         const foreheadPosition = {
-          x: (leftEar.x + rightEar.x) / 2,
-          y: foreheadCenter.y
+          x: (leftEyeInner.x + rightEyeInner.x) / 2,
+          y: (leftEyeInner.y + rightEyeInner.y) / 2
         };
 
         // Calcular la posición de la gorra basada en la posición de la frente
         const position = {
           x: (foreheadPosition.x - 0.5) * 2,
-          y: (foreheadPosition.y - 0.5) * -2 + 0.3, // Ajustar para bajar el modelo
+          y: (foreheadPosition.y - 0.5) * -2 - 0.15, // Ajustar para bajar el modelo
           z: 0
         };
 
@@ -101,13 +105,18 @@
           z: faceWidth * 1.2
         };
 
+        // Calcular la rotación de la cabeza
+        const dx = rightEyeInner.x - leftEyeInner.x;
+        const dy = rightEyeInner.y - leftEyeInner.y;
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
         // Mostrar información de la cara
         labelElement.innerHTML = `Anchura de la cara: ${faceWidth.toFixed(2)}<br>Altura de la cara: ${faceHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', '-20 0 0');
+        hat.setAttribute('rotation', `0 0 ${angle}`);
         hat.setAttribute('visible', true);
 
         modelInfoElement.textContent = 'Modelo cargado correctamente';
