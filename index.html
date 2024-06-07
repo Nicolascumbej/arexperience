@@ -103,13 +103,12 @@
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
 
-        const noseTip = landmarks[1];
-        const leftEar = landmarks[234];
-        const rightEar = landmarks[454];
         const leftEyeInner = landmarks[133];
         const rightEyeInner = landmarks[362];
         const foreheadCenter = landmarks[10];
         const chin = landmarks[152];
+        const leftEar = landmarks[234];
+        const rightEar = landmarks[454];
 
         const faceWidth = Math.abs(leftEar.x - rightEar.x);
         const faceHeight = Math.abs(foreheadCenter.y - chin.y);
