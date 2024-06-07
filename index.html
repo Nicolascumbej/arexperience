@@ -22,7 +22,7 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" scale="0.015 0.015 0.015" position="0 0 0" rotation="0 180 0" visible="false">
+    <a-entity id="hat" scale="0.02 0.02 0.02" position="0 0 0" rotation="0 180 0" visible="false">
       <a-obj-model src="#hatModel" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
     </a-entity>
     <a-entity camera></a-entity>
@@ -138,6 +138,8 @@
 
         const faceWidth = Math.abs(leftEar.x - rightEar.x);
         const faceHeight = Math.abs(foreheadCenter.y - chin.y);
+        const faceArea = faceWidth * faceHeight;
+        const facePerimeter = 2 * (faceWidth + faceHeight);
 
         const foreheadPosition = {
           x: (leftEyeInner.x + rightEyeInner.x) / 2,
@@ -147,13 +149,13 @@
         const position = {
           x: kalmanFilterX.filter((foreheadPosition.x - 0.5) * 2),
           y: kalmanFilterY.filter((foreheadPosition.y - 0.5) * -2 - 0.25),
-          z: kalmanFilterZ.filter(-0.5)
+          z: kalmanFilterZ.filter(-0.3)
         };
 
         const scale = {
-          x: faceWidth * 0.5, // Ajuste de la escala de la gorra
-          y: faceHeight * 0.5,
-          z: faceWidth * 0.5
+          x: Math.sqrt(faceArea) * 0.6, // Ajuste de la escala de la gorra
+          y: faceHeight * 0.6,
+          z: Math.sqrt(faceArea) * 0.6
         };
 
         const dx = rightEyeInner.x - leftEyeInner.x;
@@ -166,7 +168,7 @@
           z: 0
         };
 
-        labelElement.innerHTML = `Anchura de la cara: ${faceWidth.toFixed(2)}<br>Altura de la cara: ${faceHeight.toFixed(2)}`;
+        labelElement.innerHTML = `Anchura de la cara: ${faceWidth.toFixed(2)}<br>Altura de la cara: ${faceHeight.toFixed(2)}<br>Área de la cara: ${faceArea.toFixed(2)}<br>Perímetro de la cara: ${facePerimeter.toFixed(2)}`;
         labelElement.style.display = 'block';
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
