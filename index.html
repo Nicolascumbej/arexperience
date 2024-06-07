@@ -11,10 +11,12 @@
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
     #startButton { position: absolute; top: 10px; right: 10px; padding: 5px 10px; border-radius: 4px; font-size: 16px; cursor: pointer; }
+    #modelInfo { position: absolute; bottom: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
   </style>
 </head>
 <body>
   <div id="label">Cara reconocida</div>
+  <div id="modelInfo">Información del modelo</div>
   <button id="startButton">Iniciar cámara</button>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
@@ -82,8 +84,26 @@
       startButton.textContent = 'Iniciar cámara';
     }
 
+    // Cargar el modelo del sombrero manualmente
+    function loadHatModel(modelPath, onLoad, onError) {
+      const loader = new THREE.OBJLoader();
+      loader.load(
+        modelPath,
+        (object) => {
+          onLoad(object);
+        },
+        (progress) => {
+          console.log(`Cargando modelo: ${Math.round(progress.loaded / progress.total * 100)}%`);
+        },
+        (error) => {
+          onError(error);
+        }
+      );
+    }
+
     function onResults(results) {
       const hat = document.querySelector('#hat');
+      const modelInfoElement = document.getElementById('modelInfo');
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -128,10 +148,26 @@
 
         hat.setAttribute('position', position);
         hat.setAttribute('scale', scale);
-        hat.setAttribute('visible', true);
+
+        // Cargar el modelo del sombrero
+        loadHatModel(
+          'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
+          (hatObject) => {
+            hat.setObject3D('mesh', hatObject);
+            hat.setAttribute('visible', true);
+            modelInfoElement.textContent = 'Modelo cargado correctamente';
+            modelInfoElement.style.display = 'block';
+          },
+          (error) => {
+            console.error('Error al cargar el modelo del sombrero:', error);
+            modelInfoElement.textContent = 'Error al cargar el modelo';
+            modelInfoElement.style.display = 'block';
+          }
+        );
       } else {
         hat.setAttribute('visible', false);
         labelElement.style.display = 'none';
+        modelInfoElement.style.display = 'none';
       }
     }
   </script>
