@@ -171,7 +171,7 @@
 
         const dx = rightEyeInner.x - leftEyeInner.x;
         const dy = rightEyeInner.y - leftEyeInner.y;
-        const dz = noseTip.z - (landmarks[1].z);
+        const dz = noseTip.z - landmarks[1].z;
 
         const angleX = Math.atan2(dy, dz) * (180 / Math.PI);
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
