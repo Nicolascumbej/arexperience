@@ -10,12 +10,14 @@
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
     #modelInfo { position: absolute; bottom: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 4px; font-size: 16px; display: none; }
+    #canvas { position: absolute; top: 0; left: 0; z-index: 0; }
   </style>
 </head>
 <body>
   <div id="label">Cara reconocida</div>
   <div id="modelInfo">Información del modelo</div>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
+  <canvas id="canvas" width="1280" height="720"></canvas>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
@@ -27,6 +29,8 @@
   </a-scene>
   <script>
     const videoElement = document.getElementById('input_video');
+    const canvasElement = document.getElementById('canvas');
+    const canvasCtx = canvasElement.getContext('2d');
     const labelElement = document.getElementById('label');
     const modelInfoElement = document.getElementById('modelInfo');
 
@@ -102,6 +106,28 @@
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
+
+        // Dibujar la malla facial en el canvas
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        canvasCtx.beginPath();
+        canvasCtx.lineWidth = 0.5;
+        canvasCtx.strokeStyle = 'blue';
+
+        for (let i = 0; i < landmarks.length; i++) {
+          const x = landmarks[i].x * canvasElement.width;
+          const y = landmarks[i].y * canvasElement.height;
+          if (i === 0) {
+            canvasCtx.moveTo(x, y);
+          } else {
+            canvasCtx.lineTo(x, y);
+          }
+        }
+        canvasCtx.closePath();
+        canvasCtx.stroke();
+        canvasCtx.restore();
 
         const leftEyeInner = landmarks[133];
         const rightEyeInner = landmarks[362];
