@@ -32,7 +32,6 @@
 
     let cameraUtils = null;
 
-    // Inicializar MediaPipe
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
     faceMesh.setOptions({
       maxNumFaces: 1,
@@ -43,7 +42,6 @@
 
     faceMesh.onResults(onResults);
 
-    // Iniciar la cámara automáticamente
     startCamera();
 
     function startCamera() {
@@ -96,9 +94,9 @@
         };
 
         const scale = {
-          x: faceWidth * 3,
-          y: faceHeight * 3,
-          z: faceWidth * 3
+          x: faceWidth * 1,
+          y: faceHeight * 1,
+          z: faceWidth * 1
         };
 
         const dx = rightEyeInner.x - leftEyeInner.x;
@@ -108,9 +106,10 @@
         labelElement.innerHTML = `Anchura de la cara: ${faceWidth.toFixed(2)}<br>Altura de la cara: ${faceHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
+        // Invertimos el ángulo para corregir la orientación
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `0 ${angle} 0`);
+        hat.setAttribute('rotation', `0 ${-angle} 0`);
         hat.setAttribute('visible', true);
 
         modelInfoElement.textContent = 'Modelo cargado correctamente';
