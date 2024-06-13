@@ -114,6 +114,17 @@
       return { minX, minY, maxX, maxY };
     }
 
+    function calculateDepth(landmarks) {
+      const leftEar = landmarks[234];
+      const rightEar = landmarks[454];
+      const noseTip = landmarks[1];
+
+      const headWidth = Math.sqrt(Math.pow(rightEar.x - leftEar.x, 2) + Math.pow(rightEar.y - leftEar.y, 2) + Math.pow(rightEar.z - leftEar.z, 2));
+      const depth = Math.abs(noseTip.z - (leftEar.z + rightEar.z) / 2);
+
+      return depth / headWidth;
+    }
+
     function onResults(results) {
       const hat = document.querySelector('#hat');
 
@@ -145,11 +156,12 @@
         const centerY = (boundingBox.minY + boundingBox.maxY) / 2;
         const headWidth = boundingBox.maxX - boundingBox.minX;
         const headHeight = boundingBox.maxY - boundingBox.minY;
+        const depth = calculateDepth(landmarks);
 
         const position = {
           x: kalmanFilters.x.filter((centerX - 0.5) * 2),
-          y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.1),
-          z: kalmanFilters.z.filter((0.5 - (boundingBox.minY + boundingBox.maxY) / 2) * 2)
+          y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.2),
+          z: kalmanFilters.z.filter((0.5 - depth) * 2)
         };
 
         const scale = {
