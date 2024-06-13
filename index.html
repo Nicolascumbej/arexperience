@@ -166,18 +166,18 @@
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
         const noseTip = landmarks[1];
-        const forehead = landmarks[10];  // Use the point on the forehead for better alignment
+        const forehead = landmarks[10];  // Punto en la frente para alinear mejor
 
         const position = {
           x: kalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
-          y: kalmanFilters.y.filter(forehead.y - 0.6) * -2,  // Adjusted the vertical position
+          y: kalmanFilters.y.filter(forehead.y - 0.75) * -2,  // Ajuste la posición vertical
           z: kalmanFilters.z.filter(0.5 - depth) * 2
         };
 
         const scale = {
-          x: headWidth * 1.5,
-          y: headHeight * 1.5,
-          z: headWidth * 1.5
+          x: headWidth * 1.2,
+          y: headHeight * 1.2,
+          z: headWidth * 1.2
         };
 
         const dx = rightEye.x - leftEye.x;
@@ -185,7 +185,7 @@
         const dz = rightEye.z - leftEye.z;
 
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
-        const angleX = Math.atan2(dy, dx) * (180 / Math.PI);
+        const angleX = -Math.atan2(dy, dx) * (180 / Math.PI);  // Se ajusta el ángulo X
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
