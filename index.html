@@ -158,42 +158,35 @@
         const headHeight = boundingBox.maxY - boundingBox.minY;
         const depth = calculateDepth(landmarks);
 
+        const leftEye = landmarks[133];
+        const rightEye = landmarks[362];
+        const noseTip = landmarks[1];
+
         const position = {
-          x: kalmanFilters.x.filter((centerX - 0.5) * 2),
-          y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.3), // Ajuste en la posición Y para que la gorra esté sobre la cabeza
-          z: kalmanFilters.z.filter((0.5 - depth) * 2)
+          x: kalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
+          y: kalmanFilters.y.filter((leftEye.y + rightEye.y) / 2 - 0.5) * -2 - 0.3,
+          z: kalmanFilters.z.filter(0.5 - depth) * 2
         };
 
         const scale = {
-          x: headWidth * 1.2, // Ajuste en la escala para que la gorra tenga el tamaño correcto
+          x: headWidth * 1.2,
           y: headHeight * 1.2,
           z: headWidth * 1.2
         };
 
-        const leftEyeInner = landmarks[133];
-        const rightEyeInner = landmarks[362];
-        const noseTip = landmarks[1];
-        const dx = rightEyeInner.x - leftEyeInner.x;
-        const dy = rightEyeInner.y - leftEyeInner.y;
-        const dz = rightEyeInner.z - leftEyeInner.z;
+        const dx = rightEye.x - leftEye.x;
+        const dy = rightEye.y - leftEye.y;
+        const dz = rightEye.z - leftEye.z;
 
-        const angleX = Math.atan2(dy, dz) * (180 / Math.PI);
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
-        const angleZ = Math.atan2(dy, dx) * (180 / Math.PI);
-
-        const rotation = {
-          x: kalmanFilters.angleX.filter(angleX),
-          y: kalmanFilters.angleY.filter(-angleY + 180),
-          z: kalmanFilters.angleZ.filter(angleZ)
-        };
-
-        labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
-        labelElement.style.display = 'block';
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `${rotation.x} ${rotation.y} ${rotation.z}`);
+        hat.setAttribute('rotation', `0 ${angleY} 0`);
         hat.setAttribute('visible', true);
+
+        labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
+        labelElement.style.display = 'block';
 
         modelInfoElement.textContent = 'Modelo cargado correctamente';
         modelInfoElement.style.display = 'block';
@@ -203,7 +196,6 @@
         modelInfoElement.style.display = 'none';
       }
     }
-
-    </script>
+  </script>
 </body>
 </html>
