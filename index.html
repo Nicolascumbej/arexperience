@@ -148,8 +148,8 @@
 
         const position = {
           x: kalmanFilters.x.filter((centerX - 0.5) * 2),
-          y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.2),
-          z: kalmanFilters.z.filter(-0.5)
+          y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.1),
+          z: kalmanFilters.z.filter((0.5 - boundingBox.maxZ) * 0.5)
         };
 
         const scale = {
@@ -178,10 +178,7 @@
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
-        // Ajuste de la posición z basado en la profundidad de la cabeza
-        const adjustedZ = kalmanFilters.z.filter(-dz - 0.1); // Ajuste adicional para que la gorra esté sobre la cabeza
-
-        hat.setAttribute('position', `${position.x} ${position.y} ${adjustedZ}`);
+        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
         hat.setAttribute('rotation', `${rotation.x} ${rotation.y} ${rotation.z}`);
         hat.setAttribute('visible', true);
