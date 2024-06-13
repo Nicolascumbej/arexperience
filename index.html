@@ -184,10 +184,11 @@
         const dz = rightEye.z - leftEye.z;
 
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
+        const angleX = Math.atan2(dy, dx) * (180 / Math.PI);
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `0 ${angleY} 0`);
+        hat.setAttribute('rotation', `${angleX} ${angleY} 0`);
         hat.setAttribute('visible', true);
 
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
