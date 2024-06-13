@@ -160,14 +160,14 @@
 
         const position = {
           x: kalmanFilters.x.filter((centerX - 0.5) * 2),
-          y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.2),
+          y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.3), // Ajuste en la posición Y para que la gorra esté sobre la cabeza
           z: kalmanFilters.z.filter((0.5 - depth) * 2)
         };
 
         const scale = {
-          x: headWidth * 0.7,
-          y: headHeight * 0.7,
-          z: headWidth * 0.7
+          x: headWidth * 1.2, // Ajuste en la escala para que la gorra tenga el tamaño correcto
+          y: headHeight * 1.2,
+          z: headWidth * 1.2
         };
 
         const leftEyeInner = landmarks[133];
