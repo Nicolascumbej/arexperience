@@ -1,70 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Probador de Gorras Web</title>
+  <title>AR con Three.js y MediaPipe Holistic</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.6.0/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-    #label, #modelInfo, #controls {
+    #label, #modelInfo {
       position: absolute; 
       color: white; 
       background: rgba(0, 0, 0, 0.5); 
       padding: 5px 10px; 
       border-radius: 4px; 
       font-size: 16px; 
+      display: none;
     }
-    #label { top: 10px; left: 10px; display: none; }
-    #modelInfo { bottom: 10px; left: 10px; display: none; }
-    #controls { top: 10px; right: 10px; display: block; }
+    #label { top: 10px; left: 10px; }
+    #modelInfo { bottom: 10px; left: 10px; }
     #canvas { position: absolute; top: 0; left: 0; z-index: 0; }
-    .control-btn { margin: 5px; }
   </style>
 </head>
 <body>
   <div id="label">Cara reconocida</div>
   <div id="modelInfo">Información del modelo</div>
-  <div id="controls">
-    <button class="control-btn" onclick="changeModel('hatModel1')">Gorra 1</button>
-    <button class="control-btn" onclick="changeModel('hatModel2')">Gorra 2</button>
-    <button class="control-btn" onclick="adjustPosition('up')">Arriba</button>
-    <button class="control-btn" onclick="adjustPosition('down')">Abajo</button>
-    <button class="control-btn" onclick="adjustPosition('left')">Izquierda</button>
-    <button class="control-btn" onclick="adjustPosition('right')">Derecha</button>
-    <button class="control-btn" onclick="adjustScale('increase')">Aumentar</button>
-    <button class="control-btn" onclick="adjustScale('decrease')">Disminuir</button>
-    <button class="control-btn" onclick="resetModel()">Resetear</button>
-  </div>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
   <canvas id="canvas" width="1280" height="720"></canvas>
-  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
-    <a-assets>
-    <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
-    </a-assets>
-    <a-entity id="hat" scale="0.5 0.5 0.5" position="0 0 0" rotation="0 0 0" visible="false">
-      <a-obj-model id="hatModel" src="#hatModel1" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
-    </a-entity>
-    <a-entity camera></a-entity>
-  </a-scene>
   <script>
     const videoElement = document.getElementById('input_video');
     const canvasElement = document.getElementById('canvas');
     const canvasCtx = canvasElement.getContext('2d');
     const labelElement = document.getElementById('label');
     const modelInfoElement = document.getElementById('modelInfo');
-    const hat = document.querySelector('#hat');
-    let currentModel = '#hatModel1';
-    let positionOffset = { x: 0, y: 0, z: 0 };
-    let scaleOffset = 1;
 
     const holistic = new Holistic({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}` });
     holistic.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      enableSegmentation: true,
+      refineFaceLandmarks: true,
+      minDetectionConfidence: 0.8,
+      minTrackingConfidence: 0.8
     });
 
     holistic.onResults(onResults);
@@ -96,7 +73,7 @@
       }
 
       filter(z, u = 0, adapt = 1) {
-        this.R *= adapt;
+        this.R *= adapt; // Ajustar R dinámicamente basado en el movimiento
         if (isNaN(this.x)) {
           this.x = 1 / this.C * z;
           this.cov = 1 / this.C * this.Q * (1 / this.C);
@@ -123,6 +100,31 @@
       scaleZ: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 })
     };
 
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    camera.position.set(0, 0, 5);
+    controls.update();
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(0, 1, 0).normalize();
+    scene.add(directionalLight);
+
+    const loader = new THREE.OBJLoader();
+    let hatModel;
+    loader.load('https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj', function (obj) {
+      hatModel = obj;
+      hatModel.visible = false;
+      scene.add(hatModel);
+    });
+
     function calculateBoundingBox(landmarks) {
       let minX = 1.0, minY = 1.0, maxX = 0.0, maxY = 0.0;
       landmarks.forEach(landmark => {
@@ -146,12 +148,12 @@
     }
 
     function onResults(results) {
-      if (!hat || !hat.object3D) {
+      if (!hatModel) {
         return;
       }
 
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        const landmarks = results.multiFaceLandmarks[0];
+      if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+        const landmarks = results.faceLandmarks;
 
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -182,15 +184,15 @@
         const chin = landmarks[152];
 
         const position = {
-          x: adaptiveKalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5, 2) * 2 + positionOffset.x,
-          y: adaptiveKalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5, 2) * -2 + positionOffset.y,
-          z: adaptiveKalmanFilters.z.filter(0.5 - depth, 2) * 2 + positionOffset.z
+          x: adaptiveKalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5, 2) * 2,
+          y: adaptiveKalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5, 2) * -2,
+          z: adaptiveKalmanFilters.z.filter(0.5 - depth, 2) * 2
         };
 
         const scale = {
-          x: headWidth * 1.2 * scaleOffset,
-          y: headHeight * 1.2 * scaleOffset,
-          z: headWidth * 1.2 * scaleOffset
+          x: headWidth * 1.2,
+          y: headHeight * 1.2,
+          z: headWidth * 1.2
         };
 
         const scaleFiltered = {
@@ -213,10 +215,10 @@
           z: adaptiveKalmanFilters.angleZ.filter(angleZ)
         };
 
-        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
-        hat.setAttribute('scale', `${scaleFiltered.x} ${scaleFiltered.y} ${scaleFiltered.z}`);
-        hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
-        hat.setAttribute('visible', true);
+        hatModel.position.set(position.x, position.y, position.z);
+        hatModel.scale.set(scaleFiltered.x, scaleFiltered.y, scaleFiltered.z);
+        hatModel.rotation.set(rotationFiltered.x, rotationFiltered.y, rotationFiltered.z);
+        hatModel.visible = true;
 
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
@@ -224,48 +226,19 @@
         modelInfoElement.textContent = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
         modelInfoElement.style.display = 'block';
       } else {
-        hat.setAttribute('visible', false);
+        hatModel.visible = false;
         labelElement.style.display = 'none';
         modelInfoElement.style.display = 'none';
       }
     }
 
-    function changeModel(modelId) {
-      currentModel = `#${modelId}`;
-      hat.querySelector('a-obj-model').setAttribute('src', currentModel);
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
     }
 
-    function adjustPosition(direction) {
-      const step = 0.05;
-      switch (direction) {
-        case 'up':
-          positionOffset.y += step;
-          break;
-        case 'down':
-          positionOffset.y -= step;
-          break;
-        case 'left':
-          positionOffset.x -= step;
-          break;
-        case 'right':
-          positionOffset.x += step;
-          break;
-      }
-    }
-
-    function adjustScale(action) {
-      const step = 0.1;
-      if (action === 'increase') {
-        scaleOffset += step;
-      } else if (action === 'decrease') {
-        scaleOffset -= step;
-      }
-    }
-
-    function resetModel() {
-      positionOffset = { x: 0, y: 0, z: 0 };
-      scaleOffset = 1;
-    }
+    animate();
   </script>
 </body>
 </html>
