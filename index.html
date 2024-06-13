@@ -6,6 +6,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.6.0/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label, #modelInfo {
@@ -31,9 +32,6 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" scale="0.3 0.3 0.3" position="0 0 0" rotation="0 0 0" visible="false">
-      <a-obj-model src="#hatModel" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
-    </a-entity>
     <a-entity camera></a-entity>
   </a-scene>
   <script>
@@ -67,6 +65,30 @@
         alert('No se pudo acceder a la cámara. Verifica los permisos y asegúrate de que no esté siendo utilizada por otra aplicación.');
       });
     }
+
+    // Inicialización de Three.js
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(1, 1, 1).normalize();
+    scene.add(directionalLight);
+
+    // Carga del modelo de la gorra
+    const loader = new THREE.OBJLoader();
+    let hat;
+    loader.load('https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj', function (object) {
+      hat = object;
+      hat.scale.set(0.5, 0.5, 0.5);
+      hat.visible = false;
+      scene.add(hat);
+    });
 
     class KalmanFilter {
       constructor({ R, Q, A, B, C }) {
@@ -126,7 +148,7 @@
     }
 
     function onResults(results) {
-      const hat = document.querySelector('#hat');
+      if (!hat) return;
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -190,19 +212,25 @@
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
-        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
-        hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `${rotation.x} ${rotation.y} ${rotation.z}`);
-        hat.setAttribute('visible', true);
+        hat.position.set(position.x, position.y, position.z);
+        hat.scale.set(scale.x, scale.y, scale.z);
+        hat.rotation.set(rotation.x * Math.PI / 180, rotation.y * Math.PI / 180, rotation.z * Math.PI / 180);
+        hat.visible = true;
 
         modelInfoElement.textContent = 'Modelo cargado correctamente';
         modelInfoElement.style.display = 'block';
       } else {
-        hat.setAttribute('visible', false);
+        if (hat) hat.visible = false;
         labelElement.style.display = 'none';
         modelInfoElement.style.display = 'none';
       }
     }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
   </script>
 </body>
 </html>
