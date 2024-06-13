@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR.js with A-Frame and MediaPipe</title>
+  <title>AR.js con A-Frame y MediaPipe</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
@@ -23,8 +23,8 @@
   </style>
 </head>
 <body>
-  <div id="label">Face recognized</div>
-  <div id="modelInfo">Model information</div>
+  <div id="label">Cara reconocida</div>
+  <div id="modelInfo">Información del modelo</div>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
   <canvas id="canvas" width="1280" height="720"></canvas>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
@@ -63,12 +63,12 @@
         height: 720
       });
       camera.start().catch(error => {
-        console.error('Error accessing the camera:', error);
-        alert('Unable to access the camera. Check permissions and ensure it is not being used by another application.');
+        console.error('Error al acceder a la cámara:', error);
+        alert('No se pudo acceder a la cámara. Verifica los permisos y asegúrate de que no esté siendo utilizada por otra aplicación.');
       });
     }
 
-    class KalmanFilter {
+    class AdaptiveKalmanFilter {
       constructor({ R, Q, A, B, C }) {
         this.R = R;
         this.Q = Q;
@@ -79,7 +79,8 @@
         this.x = NaN;
       }
 
-      filter(z, u = 0) {
+      filter(z, u = 0, adapt = 1) {
+        this.R *= adapt; // Ajustar R dinámicamente basado en el movimiento
         if (isNaN(this.x)) {
           this.x = 1 / this.C * z;
           this.cov = 1 / this.C * this.Q * (1 / this.C);
@@ -94,16 +95,16 @@
       }
     }
 
-    const kalmanFilters = {
-      x: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      y: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      z: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      angleX: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      angleY: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      angleZ: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      scaleX: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      scaleY: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      scaleZ: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 })
+    const adaptiveKalmanFilters = {
+      x: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      y: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      z: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      angleX: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      angleY: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      angleZ: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      scaleX: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      scaleY: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      scaleZ: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 })
     };
 
     function calculateBoundingBox(landmarks) {
@@ -167,9 +168,9 @@
         const chin = landmarks[152];
 
         const position = {
-          x: kalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
-          y: kalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5) * -2,
-          z: kalmanFilters.z.filter(0.5 - depth) * 2
+          x: adaptiveKalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5, 2) * 2,
+          y: adaptiveKalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5, 2) * -2,
+          z: adaptiveKalmanFilters.z.filter(0.5 - depth, 2) * 2
         };
 
         const scale = {
@@ -179,9 +180,9 @@
         };
 
         const scaleFiltered = {
-          x: kalmanFilters.scaleX.filter(scale.x),
-          y: kalmanFilters.scaleY.filter(scale.y),
-          z: kalmanFilters.scaleZ.filter(scale.z)
+          x: adaptiveKalmanFilters.scaleX.filter(scale.x),
+          y: adaptiveKalmanFilters.scaleY.filter(scale.y),
+          z: adaptiveKalmanFilters.scaleZ.filter(scale.z)
         };
 
         const dx = rightEye.x - leftEye.x;
@@ -193,9 +194,9 @@
         const angleZ = -Math.atan2(noseTip.y - forehead.y, noseTip.x - forehead.x) * (180 / Math.PI);
 
         const rotationFiltered = {
-          x: kalmanFilters.angleX.filter(angleX),
-          y: kalmanFilters.angleY.filter(angleY),
-          z: kalmanFilters.angleZ.filter(angleZ)
+          x: adaptiveKalmanFilters.angleX.filter(angleX),
+          y: adaptiveKalmanFilters.angleY.filter(angleY),
+          z: adaptiveKalmanFilters.angleZ.filter(angleZ)
         };
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
@@ -203,10 +204,10 @@
         hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
         hat.setAttribute('visible', true);
 
-        labelElement.innerHTML = `Head width: ${headWidth.toFixed(2)}<br>Head height: ${headHeight.toFixed(2)}`;
+        labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
-        modelInfoElement.textContent = `Model loaded. Position: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
+        modelInfoElement.textContent = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
         modelInfoElement.style.display = 'block';
       } else {
         hat.setAttribute('visible', false);
