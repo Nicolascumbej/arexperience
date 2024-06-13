@@ -166,11 +166,11 @@
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
         const noseTip = landmarks[1];
-        const forehead = landmarks[10];
+        const forehead = landmarks[10];  // Use the point on the forehead for better alignment
 
         const position = {
           x: kalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
-          y: kalmanFilters.y.filter(forehead.y - 0.5) * -2 - 0.1, // Ajuste de la posición vertical
+          y: kalmanFilters.y.filter(forehead.y - 0.6) * -2,  // Adjusted the vertical position
           z: kalmanFilters.z.filter(0.5 - depth) * 2
         };
 
