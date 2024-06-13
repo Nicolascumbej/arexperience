@@ -179,7 +179,7 @@
         labelElement.style.display = 'block';
 
         // Ajuste de la posición z basado en la profundidad de la cabeza
-        const adjustedZ = kalmanFilters.z.filter(-dz * 2);
+        const adjustedZ = kalmanFilters.z.filter(-dz - 0.1); // Ajuste adicional para que la gorra esté sobre la cabeza
 
         hat.setAttribute('position', `${position.x} ${position.y} ${adjustedZ}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
