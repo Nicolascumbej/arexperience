@@ -127,6 +127,11 @@
 
     function onResults(results) {
       const hat = document.querySelector('#hat');
+      
+      // Verifica si el modelo está cargado
+      if (!hat || !hat.object3D) {
+        return;
+      }
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
