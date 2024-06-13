@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR.js con A-Frame y MediaPipe</title>
+  <title>AR.js with A-Frame and MediaPipe</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
@@ -23,8 +23,8 @@
   </style>
 </head>
 <body>
-  <div id="label">Cara reconocida</div>
-  <div id="modelInfo">Información del modelo</div>
+  <div id="label">Face recognized</div>
+  <div id="modelInfo">Model information</div>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
   <canvas id="canvas" width="1280" height="720"></canvas>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
@@ -63,8 +63,8 @@
         height: 720
       });
       camera.start().catch(error => {
-        console.error('Error al acceder a la cámara:', error);
-        alert('No se pudo acceder a la cámara. Verifica los permisos y asegúrate de que no esté siendo utilizada por otra aplicación.');
+        console.error('Error accessing the camera:', error);
+        alert('Unable to access the camera. Check permissions and ensure it is not being used by another application.');
       });
     }
 
@@ -131,7 +131,6 @@
     function onResults(results) {
       const hat = document.querySelector('#hat');
       
-      // Verifica si el modelo está cargado
       if (!hat || !hat.object3D) {
         return;
       }
@@ -139,7 +138,6 @@
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
 
-        // Dibujar la malla facial en el canvas
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
         canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
@@ -165,8 +163,8 @@
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
         const noseTip = landmarks[1];
-        const forehead = landmarks[10];  // Punto en la frente para alinear mejor
-        const chin = landmarks[152];     // Punto en la barbilla
+        const forehead = landmarks[10];
+        const chin = landmarks[152];
 
         const position = {
           x: kalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
@@ -205,10 +203,10 @@
         hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
         hat.setAttribute('visible', true);
 
-        labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
+        labelElement.innerHTML = `Head width: ${headWidth.toFixed(2)}<br>Head height: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
-        modelInfoElement.textContent = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
+        modelInfoElement.textContent = `Model loaded. Position: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
         modelInfoElement.style.display = 'block';
       } else {
         hat.setAttribute('visible', false);
