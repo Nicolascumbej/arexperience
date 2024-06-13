@@ -178,7 +178,10 @@
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
-        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+        // Ajuste de la posición z basado en la profundidad de la cabeza
+        const adjustedZ = kalmanFilters.z.filter(-dz * 2);
+
+        hat.setAttribute('position', `${position.x} ${position.y} ${adjustedZ}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
         hat.setAttribute('rotation', `${rotation.x} ${rotation.y} ${rotation.z}`);
         hat.setAttribute('visible', true);
