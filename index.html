@@ -3,7 +3,7 @@
 <head>
   <title>AR.js con Three.js y TensorFlow.js</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.6.0/aframe/build/aframe-ar.js"></script>
   <style>
@@ -25,8 +25,8 @@
 <body>
   <div id="label">Cara reconocida</div>
   <div id="modelInfo">Información del modelo</div>
-  <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
-  <canvas id="canvas" width="1280" height="720"></canvas>
+  <video id="input_video" width="640" height="480" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
+  <canvas id="canvas" width="640" height="480"></canvas>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
@@ -46,12 +46,17 @@
     let model;
 
     async function loadModel() {
-      model = await faceLandmarksDetection.load(faceLandmarksDetection.SupportedPackages.mediapipeFacemesh);
+      model = await faceLandmarksDetection.load(faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh);
       modelInfoElement.textContent = 'Modelo cargado correctamente';
       modelInfoElement.style.display = 'block';
     }
 
     async function detectFace() {
+      if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+        requestAnimationFrame(detectFace);
+        return;
+      }
+
       const predictions = await model.estimateFaces({
         input: videoElement,
         returnTensors: false,
@@ -199,8 +204,13 @@
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
           videoElement.srcObject = stream;
-          videoElement.play();
-          detectFace();
+          videoElement.addEventListener('loadedmetadata', () => {
+            if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+              throw new Error('La cámara no proporcionó un flujo de video válido.');
+            }
+            videoElement.play();
+            detectFace();
+          });
         })
         .catch(error => {
           console.error('Error al acceder a la cámara:', error);
