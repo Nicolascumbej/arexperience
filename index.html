@@ -100,7 +100,10 @@
       z: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
       angleX: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
       angleY: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      angleZ: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 })
+      angleZ: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      scaleX: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      scaleY: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
+      scaleZ: new KalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 })
     };
 
     function calculateBoundingBox(landmarks) {
@@ -143,16 +146,12 @@
         canvasCtx.beginPath();
         canvasCtx.lineWidth = 0.5;
         canvasCtx.strokeStyle = 'blue';
-        for (let i = 0; i < landmarks.length; i++) {
-          const x = landmarks[i].x * canvasElement.width;
-          const y = landmarks[i].y * canvasElement.height;
-          if (i === 0) {
-            canvasCtx.moveTo(x, y);
-          } else {
-            canvasCtx.lineTo(x, y);
-          }
-        }
-        canvasCtx.closePath();
+        landmarks.forEach((landmark, index) => {
+          const x = landmark.x * canvasElement.width;
+          const y = landmark.y * canvasElement.height;
+          canvasCtx.moveTo(x, y);
+          canvasCtx.arc(x, y, 1, 0, 2 * Math.PI);
+        });
         canvasCtx.stroke();
         canvasCtx.restore();
 
@@ -171,7 +170,7 @@
 
         const position = {
           x: kalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
-          y: kalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5) * -2,  // Ajuste la posición vertical
+          y: kalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5) * -2,
           z: kalmanFilters.z.filter(0.5 - depth) * 2
         };
 
@@ -181,22 +180,35 @@
           z: headWidth * 1.2
         };
 
+        const scaleFiltered = {
+          x: kalmanFilters.scaleX.filter(scale.x),
+          y: kalmanFilters.scaleY.filter(scale.y),
+          z: kalmanFilters.scaleZ.filter(scale.z)
+        };
+
         const dx = rightEye.x - leftEye.x;
         const dy = rightEye.y - leftEye.y;
         const dz = rightEye.z - leftEye.z;
 
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
-        const angleX = -Math.atan2(dy, dx) * (180 / Math.PI);  // Se ajusta el ángulo X
+        const angleX = -Math.atan2(dy, dx) * (180 / Math.PI);
+        const angleZ = -Math.atan2(noseTip.y - forehead.y, noseTip.x - forehead.x) * (180 / Math.PI);
+
+        const rotationFiltered = {
+          x: kalmanFilters.angleX.filter(angleX),
+          y: kalmanFilters.angleY.filter(angleY),
+          z: kalmanFilters.angleZ.filter(angleZ)
+        };
 
         hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
-        hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `${angleX} ${angleY} 0`);
+        hat.setAttribute('scale', `${scaleFiltered.x} ${scaleFiltered.y} ${scaleFiltered.z}`);
+        hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
         hat.setAttribute('visible', true);
 
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         labelElement.style.display = 'block';
 
-        modelInfoElement.textContent = 'Modelo cargado correctamente';
+        modelInfoElement.textContent = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
         modelInfoElement.style.display = 'block';
       } else {
         hat.setAttribute('visible', false);
