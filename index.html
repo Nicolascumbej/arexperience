@@ -149,7 +149,7 @@
         const position = {
           x: kalmanFilters.x.filter((centerX - 0.5) * 2),
           y: kalmanFilters.y.filter((centerY - 0.5) * -2 - 0.1),
-          z: kalmanFilters.z.filter((0.5 - boundingBox.maxZ) * 0.5)
+          z: kalmanFilters.z.filter((0.5 - (boundingBox.minY + boundingBox.maxY) / 2) * 2)
         };
 
         const scale = {
