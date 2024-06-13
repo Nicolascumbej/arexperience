@@ -167,10 +167,11 @@
         const rightEye = landmarks[362];
         const noseTip = landmarks[1];
         const forehead = landmarks[10];  // Punto en la frente para alinear mejor
+        const chin = landmarks[152];     // Punto en la barbilla
 
         const position = {
           x: kalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
-          y: kalmanFilters.y.filter(forehead.y - 0.75) * -2,  // Ajuste la posición vertical
+          y: kalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5) * -2,  // Ajuste la posición vertical
           z: kalmanFilters.z.filter(0.5 - depth) * 2
         };
 
