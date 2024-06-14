@@ -8,7 +8,7 @@
   <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.6.0/aframe/build/aframe-ar.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-    #label, #modelInfo {
+    #label, #modelInfo, #calibrationInfo {
       position: absolute; 
       color: white; 
       background: rgba(0, 0, 0, 0.5); 
@@ -19,12 +19,14 @@
     }
     #label { top: 10px; left: 10px; }
     #modelInfo { bottom: 10px; left: 10px; }
+    #calibrationInfo { top: 10px; right: 10px; }
     #canvas { position: absolute; top: 0; left: 0; z-index: 0; }
   </style>
 </head>
 <body>
   <div id="label">Cara reconocida</div>
   <div id="modelInfo">Información del modelo</div>
+  <div id="calibrationInfo">Calibración: Mira directamente a la cámara y presiona 'c'</div>
   <video id="input_video" width="1280" height="720" style="position: absolute; top: 0; left: 0; z-index: -1;"></video>
   <canvas id="canvas" width="1280" height="720"></canvas>
   <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
@@ -42,6 +44,9 @@
     const canvasCtx = canvasElement.getContext('2d');
     const labelElement = document.getElementById('label');
     const modelInfoElement = document.getElementById('modelInfo');
+    const calibrationInfoElement = document.getElementById('calibrationInfo');
+
+    let calibrationData = null;
 
     const holistic = new Holistic({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}` });
     holistic.setOptions({
@@ -82,7 +87,7 @@
       }
 
       filter(z, u = 0, adapt = 1) {
-        this.R *= adapt; // Ajustar R dinámicamente basado en el movimiento
+        this.R *= adapt;
         if (isNaN(this.x)) {
           this.x = 1 / this.C * z;
           this.cov = 1 / this.C * this.Q * (1 / this.C);
@@ -175,11 +180,18 @@
           z: adaptiveKalmanFilters.z.filter(0.5 - depth, 2) * 2
         };
 
-        const scale = {
+        let scale = {
           x: headWidth * 0.5,
           y: headHeight * 0.5,
           z: headWidth * 0.5
         };
+
+        if (calibrationData) {
+          const { headWidthCalibrated, headHeightCalibrated } = calibrationData;
+          scale.x = (headWidth / headWidthCalibrated) * 0.5;
+          scale.y = (headHeight / headHeightCalibrated) * 0.5;
+          scale.z = (headWidth / headWidthCalibrated) * 0.5;
+        }
 
         const scaleFiltered = {
           x: adaptiveKalmanFilters.scaleX.filter(scale.x),
@@ -201,7 +213,6 @@
           z: adaptiveKalmanFilters.angleZ.filter(angleZ)
         };
 
-        // Ajustar la posición, escala y rotación del modelo de la gorra
         hat.setAttribute('position', `${position.x} ${position.y - headHeight * 0.6} ${-position.z}`);
         hat.setAttribute('scale', `${scaleFiltered.x} ${scaleFiltered.y} ${scaleFiltered.z}`);
         hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
@@ -212,12 +223,42 @@
 
         modelInfoElement.textContent = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
         modelInfoElement.style.display = 'block';
+
+        if (!calibrationData) {
+          calibrationInfoElement.style.display = 'block';
+        } else {
+          calibrationInfoElement.style.display = 'none';
+        }
       } else {
         hat.setAttribute('visible', false);
         labelElement.style.display = 'none';
         modelInfoElement.style.display = 'none';
+        calibrationInfoElement.style.display = 'none';
       }
     }
+
+    function onCalibrate() {
+      if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+        const landmarks = results.faceLandmarks;
+        const boundingBox = calculateBoundingBox(landmarks);
+        const headWidth = boundingBox.maxX - boundingBox.minX;
+        const headHeight = boundingBox.maxY - boundingBox.minY;
+
+        calibrationData = {
+          headWidthCalibrated: headWidth,
+          headHeightCalibrated: headHeight
+        };
+
+        console.log('Calibración realizada:', calibrationData);
+        calibrationInfoElement.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'c' || event.key === 'C') {
+        onCalibrate();
+      }
+    });
   </script>
 </body>
 </html>
