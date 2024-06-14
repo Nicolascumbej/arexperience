@@ -176,9 +176,9 @@
         };
 
         const scale = {
-          x: headWidth * 1.2,
-          y: headHeight * 1.2,
-          z: headWidth * 1.2
+          x: headWidth * 0.5,
+          y: headHeight * 0.5,
+          z: headWidth * 0.5
         };
 
         const scaleFiltered = {
@@ -201,7 +201,8 @@
           z: adaptiveKalmanFilters.angleZ.filter(angleZ)
         };
 
-        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+        // Ajustar la posición, escala y rotación del modelo de la gorra
+        hat.setAttribute('position', `${-position.x} ${-position.y - headHeight * 0.5} ${-position.z}`);
         hat.setAttribute('scale', `${scaleFiltered.x} ${scaleFiltered.y} ${scaleFiltered.z}`);
         hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
         hat.setAttribute('visible', true);
