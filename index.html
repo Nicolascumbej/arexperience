@@ -157,8 +157,6 @@
         canvasCtx.restore();
 
         const boundingBox = calculateBoundingBox(landmarks);
-        const centerX = (boundingBox.minX + boundingBox.maxX) / 2;
-        const centerY = (boundingBox.minY + boundingBox.maxY) / 2;
         const headWidth = boundingBox.maxX - boundingBox.minX;
         const headHeight = boundingBox.maxY - boundingBox.minY;
         const depth = calculateDepth(landmarks);
