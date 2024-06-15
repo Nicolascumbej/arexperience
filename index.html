@@ -115,7 +115,7 @@
         const headWidth = boundingBox.maxX - boundingBox.minX;
         const headHeight = boundingBox.maxY - boundingBox.minY;
         const depth = calculateDepth(landmarks);
-        const distance = 1 / (1 + depth);
+        const distance = 1 / (1 - depth); // Invertir la profundidad
 
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
