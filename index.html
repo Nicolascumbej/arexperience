@@ -112,7 +112,7 @@
         canvasCtx.restore();
 
         const depth = calculateDepth(landmarks);
-        const distance = 1 / (1 - depth);
+        const distance = 1 / (1 - depth * 0.5);
 
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
@@ -123,15 +123,15 @@
         const faceHeight = Math.abs(forehead.y - chin.y);
 
         const position = {
-          x: ((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
-          y: forehead.y - faceHeight * 0.2,
-          z: -depth * 0.5
+          x: ((leftEye.x + rightEye.x) / 2 - 0.5) * 1.5,
+          y: forehead.y - faceHeight * 0.1,
+          z: -depth * 0.6
         };
 
         const scale = {
-          x: faceWidth * 1.2,
-          y: faceHeight * 1.2,
-          z: faceWidth * 1.2
+          x: faceWidth * 0.8,
+          y: faceHeight * 0.8,
+          z: faceWidth * 0.8
         };
 
         const dx = rightEye.x - leftEye.x;
@@ -139,12 +139,16 @@
         const dz = rightEye.z - leftEye.z;
 
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
-        const angleX = -Math.atan2(dy, dx) * (180 / Math.PI);
+        const angleX = -Math.atan2(dy, dx) * (180 / Math.PI) * 0.8;
         const angleZ = -Math.atan2(forehead.y - chin.y, forehead.x - chin.x) * (180 / Math.PI);
 
-        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+        const smoothingFactor = 0.7;
+        hat.object3D.position.lerp(new THREE.Vector3(position.x, position.y, position.z), smoothingFactor);
+        hat.object3D.rotation.x = THREE.Math.lerp(hat.object3D.rotation.x, THREE.Math.degToRad(angleX), smoothingFactor);
+        hat.object3D.rotation.y = THREE.Math.lerp(hat.object3D.rotation.y, THREE.Math.degToRad(-angleY), smoothingFactor);
+        hat.object3D.rotation.z = THREE.Math.lerp(hat.object3D.rotation.z, THREE.Math.degToRad(angleZ), smoothingFactor);
+
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `${angleX} ${-angleY} ${angleZ}`);
         hat.setAttribute('visible', true);
 
         labelElement.innerHTML = `Anchura de la cara: ${faceWidth.toFixed(2)}<br>Altura de la cara: ${faceHeight.toFixed(2)}`;
