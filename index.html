@@ -82,14 +82,8 @@
     }
 
     function calculateDepth(landmarks) {
-      const leftEar = landmarks[234];
-      const rightEar = landmarks[454];
       const noseTip = landmarks[1];
-
-      const headWidth = Math.sqrt(Math.pow(rightEar.x - leftEar.x, 2) + Math.pow(rightEar.y - leftEar.y, 2) + Math.pow(rightEar.z - leftEar.z, 2));
-      const depth = Math.abs(noseTip.z - (leftEar.z + rightEar.z) / 2);
-
-      return depth / headWidth;
+      return noseTip.z;
     }
 
     function onResults(results) {
@@ -129,14 +123,14 @@
 
         const position = {
           x: ((leftEye.x + rightEye.x) / 2 - 0.5) * 2,
-          y: ((forehead.y + chin.y) / 2 - 0.5) * -2,
-          z: (0.5 - depth) * 2
+          y: forehead.y - headHeight * 0.6,
+          z: -depth
         };
 
         const scale = {
-          x: headWidth * 0.5,
-          y: headHeight * 0.5,
-          z: headWidth * 0.5
+          x: headWidth * 1.2,
+          y: headHeight * 1.2,
+          z: headWidth * 1.2
         };
 
         const dx = rightEye.x - leftEye.x;
@@ -147,10 +141,9 @@
         const angleX = -Math.atan2(dy, dx) * (180 / Math.PI);
         const angleZ = -Math.atan2(forehead.y - chin.y, forehead.x - chin.x) * (180 / Math.PI);
 
-        // Ajustar la posición, escala y rotación del modelo de la gorra
-        hat.setAttribute('position', `${position.x} ${position.y - headHeight * 0.8} ${-position.z}`);
+        hat.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-        hat.setAttribute('rotation', `${angleX} ${angleY} ${angleZ}`);
+        hat.setAttribute('rotation', `${angleX} ${-angleY} ${angleZ}`);
         hat.setAttribute('visible', true);
 
         labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
