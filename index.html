@@ -134,9 +134,9 @@
         };
 
         const scale = {
-          x: headWidth * 0.8,
-          y: headHeight * 0.8,
-          z: headWidth * 0.8
+          x: headWidth * 0.5,
+          y: headHeight * 0.5,
+          z: headWidth * 0.5
         };
 
         const dx = rightEye.x - leftEye.x;
@@ -148,7 +148,7 @@
         const angleZ = -Math.atan2(forehead.y - chin.y, forehead.x - chin.x) * (180 / Math.PI);
 
         // Ajustar la posición, escala y rotación del modelo de la gorra
-        hat.setAttribute('position', `${position.x} ${position.y - headHeight * 0.5} ${-position.z}`);
+        hat.setAttribute('position', `${position.x} ${position.y - headHeight * 0.8} ${-position.z}`);
         hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
         hat.setAttribute('rotation', `${angleX} ${angleY} ${angleZ}`);
         hat.setAttribute('visible', true);
