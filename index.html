@@ -9,12 +9,12 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label, #modelInfo {
-      position: absolute; 
-      color: white; 
-      background: rgba(0, 0, 0, 0.5); 
-      padding: 5px 10px; 
-      border-radius: 4px; 
-      font-size: 16px; 
+      position: absolute;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 16px;
       display: none;
     }
     #label { top: 10px; left: 10px; }
@@ -70,25 +70,9 @@
       });
     }
 
-    function calculateBoundingBox(landmarks) {
-      let minX = 1.0, minY = 1.0, maxX = 0.0, maxY = 0.0;
-      landmarks.forEach(landmark => {
-        minX = Math.min(minX, landmark.x);
-        minY = Math.min(minY, landmark.y);
-        maxX = Math.max(maxX, landmark.x);
-        maxY = Math.max(maxY, landmark.y);
-      });
-      return { minX, minY, maxX, maxY };
-    }
-
-    function calculateDepth(landmarks) {
-      const noseTip = landmarks[1];
-      return noseTip.z;
-    }
-
     function onResults(results) {
       const hat = document.querySelector('#hat');
-      
+
       if (!hat || !hat.object3D) {
         return;
       }
@@ -111,27 +95,20 @@
         canvasCtx.stroke();
         canvasCtx.restore();
 
-        const depth = calculateDepth(landmarks);
-        const distance = 1 / (1 - depth * 0.5);
-
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
-        const forehead = landmarks[10];
-        const chin = landmarks[152];
-
-        const faceWidth = Math.abs(leftEye.x - rightEye.x);
-        const faceHeight = Math.abs(forehead.y - chin.y);
+        const noseTip = landmarks[1];
 
         const position = {
-          x: ((leftEye.x + rightEye.x) / 2 - 0.5) * 1.5,
-          y: forehead.y - faceHeight * 0.1,
-          z: -depth * 0.6
+          x: (leftEye.x + rightEye.x) / 2 - 0.5,
+          y: noseTip.y - 0.1,
+          z: -noseTip.z
         };
 
         const scale = {
-          x: faceWidth * 0.8,
-          y: faceHeight * 0.8,
-          z: faceWidth * 0.8
+          x: Math.abs(leftEye.x - rightEye.x) * 1.2,
+          y: Math.abs(leftEye.y - noseTip.y) * 1.2,
+          z: Math.abs(leftEye.x - rightEye.x) * 1.2
         };
 
         const dx = rightEye.x - leftEye.x;
@@ -140,18 +117,14 @@
 
         const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
         const angleX = -Math.atan2(dy, dx) * (180 / Math.PI) * 0.8;
-        const angleZ = -Math.atan2(forehead.y - chin.y, forehead.x - chin.x) * (180 / Math.PI);
 
-        const smoothingFactor = 0.7;
-        hat.object3D.position.lerp(new THREE.Vector3(position.x, position.y, position.z), smoothingFactor);
-        hat.object3D.rotation.x = THREE.Math.lerp(hat.object3D.rotation.x, THREE.Math.degToRad(angleX), smoothingFactor);
-        hat.object3D.rotation.y = THREE.Math.lerp(hat.object3D.rotation.y, THREE.Math.degToRad(-angleY), smoothingFactor);
-        hat.object3D.rotation.z = THREE.Math.lerp(hat.object3D.rotation.z, THREE.Math.degToRad(angleZ), smoothingFactor);
+        hat.object3D.position.set(position.x, position.y, position.z);
+        hat.object3D.scale.set(scale.x, scale.y, scale.z);
+        hat.object3D.rotation.set(THREE.Math.degToRad(angleX), THREE.Math.degToRad(angleY), 0);
 
-        hat.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
         hat.setAttribute('visible', true);
 
-        labelElement.innerHTML = `Anchura de la cara: ${faceWidth.toFixed(2)}<br>Altura de la cara: ${faceHeight.toFixed(2)}`;
+        labelElement.innerHTML = `Anchura de la cara: ${Math.abs(leftEye.x - rightEye.x).toFixed(2)}<br>Altura de la cara: ${Math.abs(leftEye.y - noseTip.y).toFixed(2)}`;
         labelElement.style.display = 'block';
 
         modelInfoElement.textContent = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
