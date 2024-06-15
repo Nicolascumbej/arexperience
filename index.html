@@ -202,8 +202,8 @@
         };
 
         // Ajustar la posición, escala y rotación del modelo de la gorra
-        hat.setAttribute('position', `${position.x} ${position.y - headHeight * 1.5} ${-position.z}`);
-        hat.setAttribute('scale', `${scaleFiltered.x} ${scaleFiltered.y} ${scaleFiltered.z}`);
+        hat.setAttribute('position', `${position.x} ${position.y - headHeight * 1.2} ${-position.z}`);
+        hat.setAttribute('scale', `${scaleFiltered.x * 0.6} ${scaleFiltered.y * 0.6} ${scaleFiltered.z * 0.6}`);
         hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
         hat.setAttribute('visible', true);
 
