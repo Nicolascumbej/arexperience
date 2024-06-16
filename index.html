@@ -2,18 +2,19 @@
 <html>
 <head>
   <title>AR.js con A-Frame y MediaPipe Holistic</title>
-  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.3"></script>
+  <!-- Revisa y usa versiones compatibles -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3"></script>
-  <script src="https://jeromeetienne.github.io/AR.js/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/aframe/build/aframe-ar.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     #label, #modelInfo {
-      position: absolute; 
-      color: white; 
-      background: rgba(0, 0, 0, 0.8); 
-      padding: 10px; 
-      border-radius: 8px; 
+      position: absolute;
+      color: white;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 8px;
       font-size: 14px;
       display: none;
     }
@@ -43,7 +44,10 @@
     const labelElement = document.getElementById('label');
     const modelInfoElement = document.getElementById('modelInfo');
 
-    const holistic = new Holistic({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}` });
+    // Configura Holistic
+    const holistic = new Holistic({ 
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.4/${file}` 
+    });
     holistic.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
@@ -134,24 +138,9 @@
       } else {
         labelElement.style.display = 'none';
         modelInfoElement.style.display = 'none';
-        document.querySelector('#hat').object3D.visible = false;
+        const hatEntity = document.querySelector('#hat');
+        hatEntity.object3D.visible = false;
       }
-
-      drawLandmarks(results.faceLandmarks);
-    }
-
-    function drawLandmarks(landmarks) {
-      if (!landmarks) return;
-
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
-      landmarks.forEach(landmark => {
-        canvasCtx.fillStyle = 'red';
-        canvasCtx.beginPath();
-        canvasCtx.arc(landmark.x * canvasElement.width, landmark.y * canvasElement.height, 2, 0, 2 * Math.PI);
-        canvasCtx.fill();
-      });
     }
   </script>
 </body>
