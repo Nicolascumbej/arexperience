@@ -3,8 +3,8 @@
 <head>
   <title>AR.js con A-Frame y MediaPipe Holistic</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3"></script>
   <script src="https://jeromeetienne.github.io/AR.js/aframe/build/aframe-ar.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
@@ -14,7 +14,7 @@
       background: rgba(0, 0, 0, 0.8); 
       padding: 10px; 
       border-radius: 8px; 
-      font-size: 14px; 
+      font-size: 14px;
       display: none;
     }
     #label { top: 10px; left: 10px; }
@@ -99,11 +99,11 @@
       const chin = landmarks[152];
       const forehead = landmarks[10];
 
-      const headWidth = Math.sqrt(Math.pow(rightEar.x - leftEar.x, 2) + Math.pow(rightEar.y - leftEar.y, 2) + Math.pow(rightEar.z - leftEar.z, 2));
-      const headHeight = Math.sqrt(Math.pow(forehead.y - chin.y, 2) + Math.pow(forehead.z - chin.z, 2));
+      const headWidth = Math.hypot(rightEar.x - leftEar.x, rightEar.y - leftEar.y, rightEar.z - leftEar.z);
+      const headHeight = Math.hypot(forehead.y - chin.y, forehead.z - chin.z);
 
       const depth = Math.abs(noseTip.z - (leftEar.z + rightEar.z) / 2);
-      const scale = headWidth * 1.5;
+      const scale = headWidth * 1.5; // Ajusta el factor de escala según sea necesario
 
       const xPos = (leftEar.x + rightEar.x) / 2;
       const yPos = (forehead.y + chin.y) / 2;
@@ -116,45 +116,42 @@
     }
 
     function onResults(results) {
-      const hat = document.querySelector('#hat');
-      
-      if (!hat || !hat.object3D) {
-        return;
-      }
+      if (results.faceLandmarks) {
+        const boundingBox = calculateBoundingBox(results.faceLandmarks);
+        const depth = calculateDepth(results.faceLandmarks);
 
-      if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-        const landmarks = results.faceLandmarks;
+        const modelPositionAndScale = updateModelPositionAndScale(results.faceLandmarks);
 
-        canvasCtx.save();
-        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-        canvasCtx.beginPath();
-        canvasCtx.lineWidth = 0.5;
-        canvasCtx.strokeStyle = 'blue';
-        landmarks.forEach((landmark, index) => {
-          const x = landmark.x * canvasElement.width;
-          const y = landmark.y * canvasElement.height;
-          canvasCtx.moveTo(x, y);
-          canvasCtx.arc(x, y, 1, 0, 2 * Math.PI);
-        });
-        canvasCtx.stroke();
-        canvasCtx.restore();
+        const hatEntity = document.querySelector('#hat');
+        hatEntity.object3D.position.set(modelPositionAndScale.position.x, modelPositionAndScale.position.y, modelPositionAndScale.position.z);
+        hatEntity.object3D.scale.set(modelPositionAndScale.scale.x, modelPositionAndScale.scale.y, modelPositionAndScale.scale.z);
+        hatEntity.object3D.visible = true;
 
-        const modelTransforms = updateModelPositionAndScale(landmarks);
-        hat.setAttribute('position', `${modelTransforms.position.x * 2} ${-modelTransforms.position.y * 2} ${modelTransforms.position.z}`);
-        hat.setAttribute('scale', `${modelTransforms.scale.x * 0.5} ${modelTransforms.scale.y * 0.5} ${modelTransforms.scale.z * 0.5}`);
-        hat.setAttribute('visible', true);
-
-        labelElement.innerHTML = `Cara reconocida.`;
         labelElement.style.display = 'block';
-
-        modelInfoElement.textContent = `Modelo cargado. Posición: (${modelTransforms.position.x.toFixed(2)}, ${modelTransforms.position.y.toFixed(2)}, ${modelTransforms.position.z.toFixed(2)})`;
+        labelElement.innerHTML = `Cara detectada. Ancho: ${boundingBox.maxX - boundingBox.minX}, Alto: ${boundingBox.maxY - boundingBox.minY}, Profundidad: ${depth}`;
         modelInfoElement.style.display = 'block';
+        modelInfoElement.innerHTML = `Posición del modelo: (${modelPositionAndScale.position.x.toFixed(2)}, ${modelPositionAndScale.position.y.toFixed(2)}, ${modelPositionAndScale.position.z.toFixed(2)})`;
       } else {
-        hat.setAttribute('visible', false);
         labelElement.style.display = 'none';
         modelInfoElement.style.display = 'none';
+        document.querySelector('#hat').object3D.visible = false;
       }
+
+      drawLandmarks(results.faceLandmarks);
+    }
+
+    function drawLandmarks(landmarks) {
+      if (!landmarks) return;
+
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+      landmarks.forEach(landmark => {
+        canvasCtx.fillStyle = 'red';
+        canvasCtx.beginPath();
+        canvasCtx.arc(landmark.x * canvasElement.width, landmark.y * canvasElement.height, 2, 0, 2 * Math.PI);
+        canvasCtx.fill();
+      });
     }
   </script>
 </body>
