@@ -31,7 +31,7 @@
     <a-assets>
       <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
-    <a-entity id="hat" position="0 0 0" rotation="0 0 0" scale="0.05 0.05 0.05" visible="false">
+    <a-entity id="hat" position="0 0 0" rotation="0 0 0" scale="0.5 0.5 0.5" visible="false">
       <a-obj-model src="#hatModel" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
     </a-entity>
     <a-entity camera></a-entity>
@@ -70,67 +70,6 @@
       });
     }
 
-    class AdaptiveKalmanFilter {
-      constructor({ R, Q, A, B, C }) {
-        this.R = R;
-        this.Q = Q;
-        this.A = A;
-        this.B = B;
-        this.C = C;
-        this.cov = NaN;
-        this.x = NaN;
-      }
-
-      filter(z, u = 0, adapt = 1) {
-        this.R *= adapt; // Ajustar R dinámicamente basado en el movimiento
-        if (isNaN(this.x)) {
-          this.x = 1 / this.C * z;
-          this.cov = 1 / this.C * this.Q * (1 / this.C);
-        } else {
-          const predX = this.A * this.x + this.B * u;
-          const predCov = this.A * this.cov * this.A + this.R;
-          const K = predCov * this.C * (1 / (this.C * predCov * this.C + this.Q));
-          this.x = predX + K * (z - this.C * predX);
-          this.cov = predCov - K * this.C * predCov;
-        }
-        return this.x;
-      }
-    }
-
-    const adaptiveKalmanFilters = {
-      x: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      y: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      z: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      angleX: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      angleY: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      angleZ: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      scaleX: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      scaleY: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 }),
-      scaleZ: new AdaptiveKalmanFilter({ R: 0.005, Q: 4, A: 1, B: 0, C: 1 })
-    };
-
-    function calculateBoundingBox(landmarks) {
-      let minX = 1.0, minY = 1.0, maxX = 0.0, maxY = 0.0;
-      landmarks.forEach(landmark => {
-        minX = Math.min(minX, landmark.x);
-        minY = Math.min(minY, landmark.y);
-        maxX = Math.max(maxX, landmark.x);
-        maxY = Math.max(maxY, landmark.y);
-      });
-      return { minX, minY, maxX, maxY };
-    }
-
-    function calculateDepth(landmarks) {
-      const leftEar = landmarks[234];
-      const rightEar = landmarks[454];
-      const noseTip = landmarks[1];
-
-      const headWidth = Math.sqrt(Math.pow(rightEar.x - leftEar.x, 2) + Math.pow(rightEar.y - leftEar.y, 2) + Math.pow(rightEar.z - leftEar.z, 2));
-      const depth = Math.abs(noseTip.z - (leftEar.z + rightEar.z) / 2);
-
-      return depth / headWidth;
-    }
-
     function onResults(results) {
       const hat = document.querySelector('#hat');
       
@@ -156,61 +95,26 @@
         canvasCtx.stroke();
         canvasCtx.restore();
 
-        const boundingBox = calculateBoundingBox(landmarks);
-        const centerX = (boundingBox.minX + boundingBox.maxX) / 2;
-        const centerY = (boundingBox.minY + boundingBox.maxY) / 2;
-        const headWidth = boundingBox.maxX - boundingBox.minX;
-        const headHeight = boundingBox.maxY - boundingBox.minY;
-        const depth = calculateDepth(landmarks);
-
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
         const noseTip = landmarks[1];
         const forehead = landmarks[10];
         const chin = landmarks[152];
 
+        // Posicionamiento básico de la gorra
         const position = {
-          x: adaptiveKalmanFilters.x.filter((leftEye.x + rightEye.x) / 2 - 0.5, 2) * 2,
-          y: adaptiveKalmanFilters.y.filter((forehead.y + chin.y) / 2 - 0.5, 2) * -2,
-          z: adaptiveKalmanFilters.z.filter(0.5 - depth, 2) * 2
+          x: (leftEye.x + rightEye.x) / 2 - 0.5,
+          y: (forehead.y + chin.y) / 2 - 0.5,
+          z: 0
         };
 
-        const scale = {
-          x: headWidth * 0.5,
-          y: headHeight * 0.5,
-          z: headWidth * 0.5
-        };
-
-        const scaleFiltered = {
-          x: adaptiveKalmanFilters.scaleX.filter(scale.x),
-          y: adaptiveKalmanFilters.scaleY.filter(scale.y),
-          z: adaptiveKalmanFilters.scaleZ.filter(scale.z)
-        };
-
-        const dx = rightEye.x - leftEye.x;
-        const dy = rightEye.y - leftEye.y;
-        const dz = rightEye.z - leftEye.z;
-
-        const angleY = Math.atan2(dz, dx) * (180 / Math.PI);
-        const angleX = -Math.atan2(dy, dx) * (180 / Math.PI);
-        const angleZ = -Math.atan2(noseTip.y - forehead.y, noseTip.x - forehead.x) * (180 / Math.PI);
-
-        const rotationFiltered = {
-          x: adaptiveKalmanFilters.angleX.filter(angleX),
-          y: adaptiveKalmanFilters.angleY.filter(angleY),
-          z: adaptiveKalmanFilters.angleZ.filter(angleZ)
-        };
-
-        // Ajustar la posición, escala y rotación del modelo de la gorra
-        hat.setAttribute('position', `${position.x} ${position.y - headHeight * 1.2} ${-position.z}`);
-        hat.setAttribute('scale', `${scaleFiltered.x} ${scaleFiltered.y} ${scaleFiltered.z}`);
-        hat.setAttribute('rotation', `${rotationFiltered.x} ${rotationFiltered.y} ${rotationFiltered.z}`);
+        hat.setAttribute('position', `${position.x * 2} ${-position.y * 2} ${-1}`);
         hat.setAttribute('visible', true);
 
-        labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
+        labelElement.innerHTML = `Cara reconocida: (${position.x.toFixed(2)}, ${position.y.toFixed(2)})`;
         labelElement.style.display = 'block';
 
-        modelInfoElement.textContent = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
+        modelInfoElement.textContent = `Modelo cargado.`;
         modelInfoElement.style.display = 'block';
       } else {
         hat.setAttribute('visible', false);
