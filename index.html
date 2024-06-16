@@ -1,147 +1,122 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <title>AR.js con A-Frame y MediaPipe Holistic</title>
-  <!-- Revisa y usa versiones compatibles -->
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3"></script>
-  <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/aframe/build/aframe-ar.js"></script>
-  <style>
-    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-    #label, #modelInfo {
-      position: absolute;
-      color: white;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 14px;
-      display: none;
-    }
-    #label { top: 10px; left: 10px; }
-    #modelInfo { bottom: 10px; left: 10px; }
-    #canvas { position: absolute; top: 0; left: 0; z-index: 0; }
-  </style>
+    <meta charset="UTF-8">
+    <title>AR.js con A-Frame y MediaPipe</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe-ar.min.js"></script>
 </head>
-<body>
-  <div id="label">Cara reconocida</div>
-  <div id="modelInfo">Información del modelo</div>
-  <video id="input_video" width="1280" height="720" style="display: none;"></video>
-  <canvas id="canvas" width="1280" height="720"></canvas>
-  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
-    <a-assets>
-      <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
-    </a-assets>
-    <a-entity id="hat" position="0 0 0" rotation="0 0 0" scale="0.1 0.1 0.1" visible="false">
-      <a-obj-model src="#hatModel" material="color: #1565C0; metalness: 0.1; roughness: 0.9;"></a-obj-model>
-    </a-entity>
-    <a-entity camera></a-entity>
-  </a-scene>
-  <script>
-    const videoElement = document.getElementById('input_video');
-    const canvasElement = document.getElementById('canvas');
-    const canvasCtx = canvasElement.getContext('2d');
-    const labelElement = document.getElementById('label');
-    const modelInfoElement = document.getElementById('modelInfo');
+<body style="margin: 0; overflow: hidden;">
 
-    // Configura Holistic
-    const holistic = new Holistic({ 
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.4/${file}` 
-    });
-    holistic.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: true,
-      refineFaceLandmarks: true,
-      minDetectionConfidence: 0.8,
-      minTrackingConfidence: 0.8
-    });
+    <a-scene embedded arjs>
+        <a-assets>
+            <!-- Asegúrate de que el archivo glTF de la gorra está en la ruta correcta -->
+            <a-asset-item id="hatModel" src="./hat.glb"></a-asset-item>
+        </a-assets>
 
-    holistic.onResults(onResults);
-    startCamera();
+        <a-entity id="hat" position="0 0 0" scale="0.01 0.01 0.01" rotation="0 0 0" visible="false" gltf-model="#hatModel"></a-entity>
+    </a-scene>
 
-    function startCamera() {
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await holistic.send({ image: videoElement });
-        },
-        width: 1280,
-        height: 720
-      });
-      camera.start().catch(error => {
-        console.error('Error al acceder a la cámara:', error);
-        alert('No se pudo acceder a la cámara. Verifica los permisos y asegúrate de que no esté siendo utilizada por otra aplicación.');
-      });
-    }
+    <div id="modelInfo" style="position: absolute; top: 10px; left: 10px; color: white; background-color: black; padding: 10px;"></div>
+    
+    <script type="module">
+        import { Holistic, POSE_LANDMARKS, FACE_LANDMARKS, HAND_LANDMARKS } from 'https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.4';
+        import { Camera } from 'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils';
 
-    function calculateBoundingBox(landmarks) {
-      let minX = 1.0, minY = 1.0, maxX = 0.0, maxY = 0.0;
-      landmarks.forEach(landmark => {
-        minX = Math.min(minX, landmark.x);
-        minY = Math.min(minY, landmark.y);
-        maxX = Math.max(maxX, landmark.x);
-        maxY = Math.max(maxY, landmark.y);
-      });
-      return { minX, minY, maxX, maxY };
-    }
-
-    function calculateDepth(landmarks) {
-      const leftEar = landmarks[234];
-      const rightEar = landmarks[454];
-      const noseTip = landmarks[1];
-
-      const headWidth = Math.sqrt(Math.pow(rightEar.x - leftEar.x, 2) + Math.pow(rightEar.y - leftEar.y, 2) + Math.pow(rightEar.z - leftEar.z, 2));
-      const depth = Math.abs(noseTip.z - (leftEar.z + rightEar.z) / 2);
-
-      return depth / headWidth;
-    }
-
-    function updateModelPositionAndScale(landmarks) {
-      const noseTip = landmarks[1];
-      const leftEar = landmarks[234];
-      const rightEar = landmarks[454];
-      const chin = landmarks[152];
-      const forehead = landmarks[10];
-
-      const headWidth = Math.hypot(rightEar.x - leftEar.x, rightEar.y - leftEar.y, rightEar.z - leftEar.z);
-      const headHeight = Math.hypot(forehead.y - chin.y, forehead.z - chin.z);
-
-      const depth = Math.abs(noseTip.z - (leftEar.z + rightEar.z) / 2);
-      const scale = headWidth * 1.5; // Ajusta el factor de escala según sea necesario
-
-      const xPos = (leftEar.x + rightEar.x) / 2;
-      const yPos = (forehead.y + chin.y) / 2;
-      const zPos = (leftEar.z + rightEar.z) / 2 - depth;
-
-      return {
-        position: { x: xPos, y: yPos, z: -zPos },
-        scale: { x: scale, y: scale, z: scale }
-      };
-    }
-
-    function onResults(results) {
-      if (results.faceLandmarks) {
-        const boundingBox = calculateBoundingBox(results.faceLandmarks);
-        const depth = calculateDepth(results.faceLandmarks);
-
-        const modelPositionAndScale = updateModelPositionAndScale(results.faceLandmarks);
+        const videoElement = document.createElement('video');
+        document.body.appendChild(videoElement);
+        videoElement.style.display = 'none'; // Ocultar el elemento de video
 
         const hatEntity = document.querySelector('#hat');
-        hatEntity.object3D.position.set(modelPositionAndScale.position.x, modelPositionAndScale.position.y, modelPositionAndScale.position.z);
-        hatEntity.object3D.scale.set(modelPositionAndScale.scale.x, modelPositionAndScale.scale.y, modelPositionAndScale.scale.z);
-        hatEntity.object3D.visible = true;
+        const modelInfoDiv = document.querySelector('#modelInfo');
 
-        labelElement.style.display = 'block';
-        labelElement.innerHTML = `Cara detectada. Ancho: ${boundingBox.maxX - boundingBox.minX}, Alto: ${boundingBox.maxY - boundingBox.minY}, Profundidad: ${depth}`;
-        modelInfoElement.style.display = 'block';
-        modelInfoElement.innerHTML = `Posición del modelo: (${modelPositionAndScale.position.x.toFixed(2)}, ${modelPositionAndScale.position.y.toFixed(2)}, ${modelPositionAndScale.position.z.toFixed(2)})`;
-      } else {
-        labelElement.style.display = 'none';
-        modelInfoElement.style.display = 'none';
-        const hatEntity = document.querySelector('#hat');
-        hatEntity.object3D.visible = false;
-      }
-    }
-  </script>
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            videoElement.srcObject = stream;
+            videoElement.play();
+
+            return new Promise((resolve) => {
+                videoElement.onloadedmetadata = () => {
+                    resolve(videoElement);
+                };
+            });
+        }
+
+        setupCamera().then(video => {
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await holistic.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+            camera.start();
+        });
+
+        const holistic = new Holistic({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`
+        });
+
+        holistic.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            smoothSegmentation: true,
+            refineFaceLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        holistic.onResults(onResults);
+
+        function onResults(results) {
+            if (results.faceLandmarks) {
+                const landmarks = results.faceLandmarks;
+                const headPosition = calculateHeadPosition(landmarks);
+
+                // Posicionar la gorra
+                hatEntity.setAttribute('position', `${headPosition.x} ${headPosition.y} ${headPosition.z}`);
+                hatEntity.setAttribute('scale', `${headPosition.scaleX} ${headPosition.scaleY} ${headPosition.scaleZ}`);
+                hatEntity.object3D.visible = true;
+
+                modelInfoDiv.innerHTML = `Cara detectada. Ancho: ${headPosition.width}, Alto: ${headPosition.height}, Profundidad: ${headPosition.depth}`;
+            } else {
+                hatEntity.object3D.visible = false;
+                modelInfoDiv.innerHTML = 'No se detectó ninguna cara';
+            }
+        }
+
+        function calculateHeadPosition(landmarks) {
+            const leftEar = landmarks[234];
+            const rightEar = landmarks[454];
+            const noseTip = landmarks[1];
+            const chin = landmarks[152];
+            const forehead = landmarks[10];
+
+            const headWidth = Math.hypot(rightEar.x - leftEar.x, rightEar.y - leftEar.y, rightEar.z - leftEar.z);
+            const headHeight = Math.hypot(forehead.y - chin.y, forehead.z - chin.z);
+            const depth = Math.abs(noseTip.z - (leftEar.z + rightEar.z) / 2);
+
+            const scale = headWidth * 1.5;
+
+            const xPos = (leftEar.x + rightEar.x) / 2;
+            const yPos = (forehead.y + chin.y) / 2;
+            const zPos = (leftEar.z + rightEar.z) / 2 - depth;
+
+            return {
+                x: xPos,
+                y: yPos,
+                z: -zPos,
+                scaleX: scale,
+                scaleY: scale,
+                scaleZ: scale,
+                width: headWidth,
+                height: headHeight,
+                depth: depth
+            };
+        }
+    </script>
 </body>
 </html>
