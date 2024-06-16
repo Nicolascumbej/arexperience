@@ -171,7 +171,7 @@
         hat.setAttribute('rotation', `${angleX} ${angleY} ${angleZ}`);
         hat.setAttribute('visible', true);
 
-        labelElement.innerHTML = `Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
+        labelElement.innerHTML = `Posición de la cabeza:<br>X: ${position.x.toFixed(2)}, Y: ${position.y.toFixed(2)}, Z: ${position.z.toFixed(2)}<br>Anchura de la cabeza: ${headWidth.toFixed(2)}<br>Altura de la cabeza: ${headHeight.toFixed(2)}`;
         modelInfoElement.innerHTML = `Modelo cargado. Posición: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`;
         labelElement.style.display = 'block';
         modelInfoElement.style.display = 'block';
