@@ -6,7 +6,7 @@
     <title>Probador Virtual AR - Gorra</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
     <style>
         #arScene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
         #controls { 
@@ -53,16 +53,13 @@
     <div id="loadingMessage">Cargando... Por favor, espere.</div>
 
     <script>
-        let faceLandmarksDetector;
+        let faceDetector;
         const video = document.createElement('video');
         const hat = document.querySelector('#hat');
 
-        async function loadFaceLandmarksDetection() {
+        async function loadFaceDetector() {
             try {
-                return await faceLandmarksDetection.load(
-                    faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
-                    { maxFaces: 1 }
-                );
+                return await blazeface.load();
             } catch (error) {
                 console.error('Error al cargar el modelo de detección facial:', error);
                 alert('No se pudo cargar el modelo de detección facial. Por favor, recargue la página e inténtelo de nuevo.');
@@ -78,7 +75,7 @@
                 video.srcObject = stream;
                 video.play();
 
-                faceLandmarksDetector = await loadFaceLandmarksDetection();
+                faceDetector = await loadFaceDetector();
 
                 document.getElementById('loadingMessage').style.display = 'none';
                 document.getElementById('controls').style.display = 'block';
@@ -94,10 +91,7 @@
         async function animate() {
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 try {
-                    const faces = await faceLandmarksDetector.estimateFaces({
-                        input: video,
-                        predictIrises: false
-                    });
+                    const faces = await faceDetector.estimateFaces(video, false);
                     if (faces.length > 0) {
                         updateHatPosition(faces[0]);
                     }
@@ -109,13 +103,13 @@
         }
 
         function updateHatPosition(face) {
-            const nose = face.landmarks[1];
-            const leftEye = face.landmarks[226];
-            const rightEye = face.landmarks[446];
+            const nose = face.landmarks[2];
+            const leftEye = face.landmarks[1];
+            const rightEye = face.landmarks[0];
 
             const centerX = -(nose[0] - video.videoWidth / 2) / (video.videoWidth / 2);
             const centerY = (nose[1] - video.videoHeight / 2) / (video.videoHeight / 2);
-            const centerZ = -nose[2] / 500 - 0.5;
+            const centerZ = -0.5;
 
             const scale = Math.abs(leftEye[0] - rightEye[0]) / video.videoWidth;
 
@@ -139,7 +133,7 @@
 
         ['verticalAdjust', 'horizontalAdjust', 'sizeAdjust'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
-                if (faceLandmarksDetector) {
+                if (faceDetector) {
                     animate();
                 }
             });
