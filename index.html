@@ -6,78 +6,24 @@
   <title>AR Gorra Ajustable - Proyecto Avanzado</title>
   <!-- Últimas versiones de A-Frame y MindAR -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/dist/mindar-face-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face-aframe.prod.js"></script>
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #f0f0f0, #c0c0c0);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    #startButton {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 15px 30px;
-      font-size: 18px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    #startButton:hover {
-      background-color: #0056b3;
-    }
-
-    #controls {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background-color: rgba(0, 0, 0, 0.9);
-      padding: 15px;
-      border-radius: 10px;
-      display: none;
-      width: 300px;
-      color: white;
-    }
-
-    #controls h3 {
-      margin-top: 0;
-    }
-
-    .control-group {
-      margin-bottom: 15px;
-    }
-
-    .control-group label {
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    .control-group input[type="range"] {
-      width: 100%;
-    }
+    /* ... (el estilo permanece igual) ... */
   </style>
 </head>
 <body>
   <button id="startButton">Iniciar Experiencia AR</button>
 
-  <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-scene mindar-face="autoStart: false;" embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     <a-assets>
       <!-- Agrega tus modelos 3D y texturas aquí -->
-      <a-asset-item id="hatModel" src="path/to/hat-model.gltf"></a-asset-item>
+      <a-asset-item id="hatModel" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
     </a-assets>
 
     <a-camera active="false" position="0 0 0"></a-camera>
 
     <a-entity mindar-face-target="anchorIndex: 1">
-      <a-entity id="hat" gltf-model="#hatModel" position="0 0.1 -0.3" scale="0.2 0.2 0.2" animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"></a-entity>
+      <a-entity id="hat" obj-model="obj: #hatModel" position="0 0.1 -0.3" scale="0.2 0.2 0.2" animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"></a-entity>
     </a-entity>
 
     <a-light type="ambient" intensity="0.5"></a-light>
@@ -85,22 +31,7 @@
   </a-scene>
 
   <div id="controls">
-    <h3>Controles de Ajuste</h3>
-    <div class="control-group">
-      <label for="verticalAdjust">Ajuste Vertical:</label>
-      <input type="range" id="verticalAdjust" min="-0.5" max="0.5" step="0.01" value="0">
-    </div>
-    <div class="control-group">
-      <label for="horizontalAdjust">Ajuste Horizontal:</label>
-      <input type="range" id="horizontalAdjust" min="-0.5" max="0.5" step="0.01" value="0">
-    </div>
-    <div class="control-group">
-      <label for="sizeAdjust">Ajuste de Tamaño:</label>
-      <input type="range" id="sizeAdjust" min="0.5" max="2" step="0.1" value="1">
-    </div>
-    <div class="control-group">
-      <button id="saveConfig">Guardar Configuración</button>
-    </div>
+    <!-- ... (los controles permanecen iguales) ... -->
   </div>
 
   <script>
@@ -114,19 +45,30 @@
       const sizeAdjust = document.getElementById('sizeAdjust');
       const saveConfig = document.getElementById('saveConfig');
 
+      // Esperar a que la escena se cargue completamente
+      sceneEl.addEventListener('loaded', function () {
+        console.log('A-Frame scene loaded');
+        startButton.disabled = false;
+      });
+
       // Iniciar la experiencia AR
       startButton.addEventListener('click', () => {
-        if (!sceneEl.systems['mindar-face']) {
+        if (sceneEl.systems['mindar-face-system']) {
+          console.log('Iniciando sistema MindAR');
+          sceneEl.systems['mindar-face-system'].start()
+            .then(() => {
+              console.log('Sistema MindAR iniciado correctamente');
+              startButton.style.display = 'none';
+              controls.style.display = 'block';
+            })
+            .catch(error => {
+              console.error('Error al iniciar el sistema MindAR:', error);
+              alert('Error al iniciar la experiencia AR. Por favor, inténtelo de nuevo.');
+            });
+        } else {
           console.error('El sistema mindar-face no está disponible.');
-          return;
+          alert('El sistema de realidad aumentada no está disponible en este dispositivo.');
         }
-
-        sceneEl.systems['mindar-face'].start().then(() => {
-          startButton.style.display = 'none';
-          controls.style.display = 'block';
-        }).catch(error => {
-          console.error('Error al iniciar el sistema mindar-face:', error);
-        });
       });
 
       const updateHatPosition = () => {
