@@ -6,19 +6,33 @@
     <title>Probador Virtual AR - Gorra</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #arView { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         #controls { 
             position: absolute; top: 10px; right: 10px; 
             background: rgba(0,0,0,0.7); color: white; 
             padding: 10px; border-radius: 5px; 
+            display: none;
         }
         #startButton {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             padding: 10px 20px; font-size: 18px;
+            background: #4CAF50; color: white;
+            border: none; border-radius: 5px;
+            cursor: pointer;
+        }
+        #loadingMessage {
+            position: absolute; top: 60%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px; color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px; border-radius: 5px;
+            display: none;
         }
     </style>
 </head>
@@ -30,12 +44,15 @@
         <label>Tamaño: <input type="range" id="sizeAdjust" min="50" max="150" value="100"></label>
     </div>
     <button id="startButton">Iniciar Experiencia AR</button>
+    <div id="loadingMessage">Cargando... Por favor, espere.</div>
 
     <script>
-        let scene, camera, renderer, hatModel, faceMesh;
+        let scene, camera, renderer, hatModel, faceLandmarksDetector;
         const video = document.createElement('video');
 
         async function init() {
+            document.getElementById('loadingMessage').style.display = 'block';
+            
             // Configurar Three.js
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -51,21 +68,41 @@
 
             // Cargar modelo de gorra
             const loader = new THREE.OBJLoader();
-            loader.load('https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj', (obj) => {
-                hatModel = obj;
-                hatModel.scale.set(0.1, 0.1, 0.1);
-                scene.add(hatModel);
-            });
+            loader.load(
+                'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
+                (obj) => {
+                    hatModel = obj;
+                    hatModel.scale.set(0.1, 0.1, 0.1);
+                    scene.add(hatModel);
+                    console.log('Modelo de gorra cargado con éxito');
+                },
+                (xhr) => {
+                    console.log((xhr.loaded / xhr.total * 100) + '% cargado');
+                },
+                (error) => {
+                    console.error('Error al cargar el modelo:', error);
+                }
+            );
 
             // Iniciar video
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 video.play();
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                alert('No se pudo acceder a la cámara. Por favor, asegúrese de que tiene una cámara disponible y ha dado los permisos necesarios.');
+                return;
             }
 
-            // Cargar modelo de FaceMesh
-            faceMesh = await facemesh.load({ maxFaces: 1 });
+            // Cargar modelo de detección de puntos faciales
+            faceLandmarksDetector = await faceLandmarksDetection.load(
+                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
+                { maxFaces: 1 }
+            );
+
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('controls').style.display = 'block';
 
             // Iniciar loop de renderizado
             animate();
@@ -75,10 +112,12 @@
             requestAnimationFrame(animate);
 
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                const faces = await faceMesh.estimateFaces(video);
+                const faces = await faceLandmarksDetector.estimateFaces({
+                    input: video,
+                    predictIrises: false
+                });
                 if (faces.length > 0) {
-                    const face = faces[0];
-                    updateHatPosition(face);
+                    updateHatPosition(faces[0]);
                 }
             }
 
@@ -88,28 +127,24 @@
         function updateHatPosition(face) {
             if (!hatModel) return;
 
-            // Obtener puntos clave de la cara
-            const nose = face.scaledMesh[1];
-            const leftEye = face.scaledMesh[226];
-            const rightEye = face.scaledMesh[446];
+            const nose = face.landmarks[1];
+            const leftEye = face.landmarks[226];
+            const rightEye = face.landmarks[446];
 
-            // Calcular posición y rotación de la gorra
             const center = new THREE.Vector3(
-                (leftEye[0] + rightEye[0]) / 2,
-                nose[1] - 50, // Ajustar altura
-                -nose[2]
+                -(nose[0] - video.videoWidth / 2) / (video.videoWidth / 2),
+                -(nose[1] - video.videoHeight / 2) / (video.videoHeight / 2),
+                -nose[2] / 500
             );
 
-            const scale = Math.abs(leftEye[0] - rightEye[0]) / 100;
+            const scale = Math.abs(leftEye[0] - rightEye[0]) / video.videoWidth;
 
             hatModel.position.copy(center);
             hatModel.scale.setScalar(scale * document.getElementById('sizeAdjust').value / 100);
 
-            // Aplicar ajustes de usuario
             hatModel.position.y += document.getElementById('verticalAdjust').value / 100;
             hatModel.position.x += document.getElementById('horizontalAdjust').value / 100;
 
-            // Calcular rotación basada en la pose de la cara
             const faceNormal = new THREE.Vector3().subVectors(
                 new THREE.Vector3(rightEye[0], rightEye[1], rightEye[2]),
                 new THREE.Vector3(leftEye[0], leftEye[1], leftEye[2])
@@ -123,10 +158,8 @@
         document.getElementById('startButton').addEventListener('click', () => {
             init();
             document.getElementById('startButton').style.display = 'none';
-            document.getElementById('controls').style.display = 'block';
         });
 
-        // Manejar cambios de tamaño de ventana
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
