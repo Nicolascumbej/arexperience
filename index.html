@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Probador Virtual AR - Gorra</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #arView { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
@@ -46,7 +41,13 @@
     <button id="startButton">Iniciar Experiencia AR</button>
     <div id="loadingMessage">Cargando... Por favor, espere.</div>
 
-    <script>
+    <script type="module">
+        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+        import { OBJLoader } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/loaders/OBJLoader.js';
+        import * as faceLandmarksDetection from 'https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.3/dist/face-landmarks-detection.esm.js';
+        import '@tensorflow/tfjs-core';
+        import '@tensorflow/tfjs-backend-webgl';
+
         let scene, camera, renderer, hatModel, faceLandmarksDetector;
         const video = document.createElement('video');
 
@@ -67,7 +68,7 @@
             scene.add(directionalLight);
 
             // Cargar modelo de gorra
-            const loader = new THREE.OBJLoader();
+            const loader = new OBJLoader();
             loader.load(
                 'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
                 (obj) => {
