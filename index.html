@@ -3,31 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AR Gorra Ajustable</title>
-  <!-- Usa las versiones más recientes de A-Frame y MindAR -->
+  <title>AR Gorra Ajustable - Proyecto Avanzado</title>
+  <!-- Últimas versiones de A-Frame y MindAR -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/dist/mindar-face-aframe.prod.js"></script>
   <style>
     body {
       margin: 0;
       overflow: hidden;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #f0f0f0, #c0c0c0);
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       height: 100vh;
-      background-color: #000;
-      color: #fff;
-      font-family: Arial, sans-serif;
     }
 
     #startButton {
       background-color: #007bff;
-      color: #fff;
+      color: white;
       border: none;
       padding: 15px 30px;
       font-size: 18px;
       border-radius: 5px;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
 
     #startButton:hover {
@@ -38,41 +39,68 @@
       position: absolute;
       top: 20px;
       right: 20px;
-      background-color: rgba(0, 0, 0, 0.8);
+      background-color: rgba(0, 0, 0, 0.9);
       padding: 15px;
       border-radius: 10px;
       display: none;
+      width: 300px;
+      color: white;
     }
 
-    label {
+    #controls h3 {
+      margin-top: 0;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group label {
       display: block;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
 
-    input[type="range"] {
+    .control-group input[type="range"] {
       width: 100%;
     }
   </style>
 </head>
 <body>
-  <button id="startButton">Iniciar AR</button>
+  <button id="startButton">Iniciar Experiencia AR</button>
 
   <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-assets>
+      <!-- Agrega tus modelos 3D y texturas aquí -->
+      <a-asset-item id="hatModel" src="path/to/hat-model.gltf"></a-asset-item>
+    </a-assets>
+
     <a-camera active="false" position="0 0 0"></a-camera>
+
     <a-entity mindar-face-target="anchorIndex: 1">
-      <a-box id="hat" color="red" position="0 0.1 -0.3" scale="0.2 0.2 0.2"></a-box>
+      <a-entity id="hat" gltf-model="#hatModel" position="0 0.1 -0.3" scale="0.2 0.2 0.2" animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"></a-entity>
     </a-entity>
+
+    <a-light type="ambient" intensity="0.5"></a-light>
+    <a-light type="directional" intensity="1" position="-1 2 1" castShadow="true"></a-light>
   </a-scene>
 
   <div id="controls">
-    <label for="verticalAdjust">Ajuste Vertical:</label>
-    <input type="range" id="verticalAdjust" min="-0.5" max="0.5" step="0.01" value="0">
-    
-    <label for="horizontalAdjust">Ajuste Horizontal:</label>
-    <input type="range" id="horizontalAdjust" min="-0.5" max="0.5" step="0.01" value="0">
-    
-    <label for="sizeAdjust">Ajuste de Tamaño:</label>
-    <input type="range" id="sizeAdjust" min="0.5" max="2" step="0.1" value="1">
+    <h3>Controles de Ajuste</h3>
+    <div class="control-group">
+      <label for="verticalAdjust">Ajuste Vertical:</label>
+      <input type="range" id="verticalAdjust" min="-0.5" max="0.5" step="0.01" value="0">
+    </div>
+    <div class="control-group">
+      <label for="horizontalAdjust">Ajuste Horizontal:</label>
+      <input type="range" id="horizontalAdjust" min="-0.5" max="0.5" step="0.01" value="0">
+    </div>
+    <div class="control-group">
+      <label for="sizeAdjust">Ajuste de Tamaño:</label>
+      <input type="range" id="sizeAdjust" min="0.5" max="2" step="0.1" value="1">
+    </div>
+    <div class="control-group">
+      <button id="saveConfig">Guardar Configuración</button>
+    </div>
   </div>
 
   <script>
@@ -84,15 +112,15 @@
       const verticalAdjust = document.getElementById('verticalAdjust');
       const horizontalAdjust = document.getElementById('horizontalAdjust');
       const sizeAdjust = document.getElementById('sizeAdjust');
+      const saveConfig = document.getElementById('saveConfig');
 
-      // Verifica que el sistema mindar-face esté disponible
+      // Iniciar la experiencia AR
       startButton.addEventListener('click', () => {
         if (!sceneEl.systems['mindar-face']) {
           console.error('El sistema mindar-face no está disponible.');
           return;
         }
 
-        // Inicia el sistema de mindar-face
         sceneEl.systems['mindar-face'].start().then(() => {
           startButton.style.display = 'none';
           controls.style.display = 'block';
@@ -114,7 +142,29 @@
       horizontalAdjust.addEventListener('input', updateHatPosition);
       sizeAdjust.addEventListener('input', updateHatPosition);
 
-      updateHatPosition();
+      // Guardar la configuración
+      saveConfig.addEventListener('click', () => {
+        const config = {
+          vertical: verticalAdjust.value,
+          horizontal: horizontalAdjust.value,
+          size: sizeAdjust.value
+        };
+        localStorage.setItem('arConfig', JSON.stringify(config));
+        alert('Configuración guardada.');
+      });
+
+      // Cargar la configuración guardada
+      const loadConfig = () => {
+        const config = JSON.parse(localStorage.getItem('arConfig'));
+        if (config) {
+          verticalAdjust.value = config.vertical;
+          horizontalAdjust.value = config.horizontal;
+          sizeAdjust.value = config.size;
+          updateHatPosition();
+        }
+      };
+
+      loadConfig();
     });
   </script>
 </body>
