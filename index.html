@@ -57,6 +57,19 @@
         const video = document.createElement('video');
         const hat = document.querySelector('#hat');
 
+        async function loadFaceLandmarksDetection() {
+            try {
+                return await faceLandmarksDetection.load(
+                    faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
+                    { maxFaces: 1 }
+                );
+            } catch (error) {
+                console.error('Error al cargar el modelo de detección facial:', error);
+                alert('No se pudo cargar el modelo de detección facial. Por favor, recargue la página e inténtelo de nuevo.');
+                throw error;
+            }
+        }
+
         async function init() {
             document.getElementById('loadingMessage').style.display = 'block';
             
@@ -64,32 +77,32 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 video.play();
+
+                faceLandmarksDetector = await loadFaceLandmarksDetection();
+
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('controls').style.display = 'block';
+                hat.setAttribute('visible', 'true');
+
+                animate();
             } catch (error) {
-                console.error('Error al acceder a la cámara:', error);
-                alert('No se pudo acceder a la cámara. Por favor, asegúrese de que tiene una cámara disponible y ha dado los permisos necesarios.');
-                return;
+                console.error('Error durante la inicialización:', error);
+                document.getElementById('loadingMessage').textContent = 'Error al iniciar. Por favor, recargue e inténtelo de nuevo.';
             }
-
-            faceLandmarksDetector = await faceLandmarksDetection.load(
-                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
-                { maxFaces: 1 }
-            );
-
-            document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('controls').style.display = 'block';
-            hat.setAttribute('visible', 'true');
-
-            animate();
         }
 
         async function animate() {
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                const faces = await faceLandmarksDetector.estimateFaces({
-                    input: video,
-                    predictIrises: false
-                });
-                if (faces.length > 0) {
-                    updateHatPosition(faces[0]);
+                try {
+                    const faces = await faceLandmarksDetector.estimateFaces({
+                        input: video,
+                        predictIrises: false
+                    });
+                    if (faces.length > 0) {
+                        updateHatPosition(faces[0]);
+                    }
+                } catch (error) {
+                    console.error('Error al estimar los puntos faciales:', error);
                 }
             }
             requestAnimationFrame(animate);
@@ -125,7 +138,11 @@
         });
 
         ['verticalAdjust', 'horizontalAdjust', 'sizeAdjust'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updateHatPosition);
+            document.getElementById(id).addEventListener('input', () => {
+                if (faceLandmarksDetector) {
+                    animate();
+                }
+            });
         });
     </script>
 </body>
