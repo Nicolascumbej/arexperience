@@ -52,9 +52,16 @@
     const horizontalAdjust = document.getElementById('horizontalAdjust');
     const sizeAdjust = document.getElementById('sizeAdjust');
 
-    startButton.addEventListener('click', function() {
-      sceneEl.systems['mindar-face-system'].start();
-      startButton.style.display = 'none';
+    // Esperar a que la escena esté cargada
+    sceneEl.addEventListener('loaded', function () {
+      startButton.addEventListener('click', function() {
+        if (sceneEl.systems['mindar-face-system']) {
+          sceneEl.systems['mindar-face-system'].start();
+          startButton.style.display = 'none';
+        } else {
+          console.error('MindAR system not found');
+        }
+      });
     });
 
     function updateHatPosition() {
