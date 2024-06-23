@@ -2,9 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AR Gorra Ajustable</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.5/dist/mindar-face-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-face-aframe.prod.js"></script>
   <style>
     body { margin: 0; overflow: hidden; }
     #label, #model-info {
@@ -26,10 +27,20 @@
       border-radius: 5px;
       color: white;
     }
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <button id="startButton">Iniciar AR</button>
+  <a-scene mindar-face="autoStart: false;" embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     <a-camera active="false" position="0 0 0"></a-camera>
     <a-entity mindar-face-target="anchorIndex: 1">
       <a-entity id="hat" obj-model="obj: https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj" position="0 0.7 -0.3" rotation="0 180 0" scale="0.1 0.1 0.1"></a-entity>
@@ -43,12 +54,22 @@
     <label>Ajuste de Tamaño: <input type="range" id="sizeAdjust" min="0.5" max="2" step="0.1" value="1"></label>
   </div>
   <script>
+    const startButton = document.getElementById('startButton');
+    const sceneEl = document.querySelector('a-scene');
     const hat = document.getElementById('hat');
     const labelElement = document.getElementById('label');
     const modelInfoElement = document.getElementById('model-info');
     const verticalAdjust = document.getElementById('verticalAdjust');
     const horizontalAdjust = document.getElementById('horizontalAdjust');
     const sizeAdjust = document.getElementById('sizeAdjust');
+
+    startButton.addEventListener('click', () => {
+      const sceneEl = document.querySelector('a-scene');
+      sceneEl.addEventListener('renderstart', () => {
+        startButton.style.display = 'none';
+        sceneEl.systems['mindar-face-system'].start();
+      });
+    });
 
     function updateHatPosition() {
       const verticalValue = parseFloat(verticalAdjust.value);
@@ -73,6 +94,11 @@
 
     // Inicializar la posición de la gorra
     updateHatPosition();
+
+    // Manejar errores de carga
+    sceneEl.addEventListener('model-error', function(event) {
+      console.error('Error loading model:', event);
+    });
   </script>
 </body>
 </html>
