@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AR Gorra Ajustable</title>
+  <!-- Actualiza las versiones de las bibliotecas si es necesario -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-face-aframe.prod.js"></script>
   <style>
@@ -85,11 +86,21 @@
       const sizeAdjust = document.getElementById('sizeAdjust');
 
       startButton.addEventListener('click', () => {
+        if (!sceneEl.systems['mindar-face-system']) {
+          console.error('El sistema mindar-face-system no está disponible.');
+          return;
+        }
+
         sceneEl.addEventListener('renderstart', () => {
           startButton.style.display = 'none';
           controls.style.display = 'block';
         });
-        sceneEl.systems['mindar-face-system'].start();
+
+        try {
+          sceneEl.systems['mindar-face-system'].start();
+        } catch (error) {
+          console.error('Error al iniciar el sistema mindar-face:', error);
+        }
       });
 
       const updateHatPosition = () => {
