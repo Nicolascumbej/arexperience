@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AR Gorra Ajustable</title>
-  <!-- Actualiza las versiones de las bibliotecas si es necesario -->
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-face-aframe.prod.js"></script>
+  <!-- Usa las versiones más recientes de A-Frame y MindAR -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.3.0/dist/mindar-face-aframe.prod.js"></script>
   <style>
     body {
       margin: 0;
@@ -85,22 +85,20 @@
       const horizontalAdjust = document.getElementById('horizontalAdjust');
       const sizeAdjust = document.getElementById('sizeAdjust');
 
+      // Verifica que el sistema mindar-face esté disponible
       startButton.addEventListener('click', () => {
-        if (!sceneEl.systems['mindar-face-system']) {
-          console.error('El sistema mindar-face-system no está disponible.');
+        if (!sceneEl.systems['mindar-face']) {
+          console.error('El sistema mindar-face no está disponible.');
           return;
         }
 
-        sceneEl.addEventListener('renderstart', () => {
+        // Inicia el sistema de mindar-face
+        sceneEl.systems['mindar-face'].start().then(() => {
           startButton.style.display = 'none';
           controls.style.display = 'block';
-        });
-
-        try {
-          sceneEl.systems['mindar-face-system'].start();
-        } catch (error) {
+        }).catch(error => {
           console.error('Error al iniciar el sistema mindar-face:', error);
-        }
+        });
       });
 
       const updateHatPosition = () => {
