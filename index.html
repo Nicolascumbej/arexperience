@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Probador Virtual AR - Gorra</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-        #arView { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #arScene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
         #controls { 
             position: absolute; top: 10px; right: 10px; 
             background: rgba(0,0,0,0.7); color: white; 
@@ -32,7 +34,16 @@
     </style>
 </head>
 <body>
-    <canvas id="arView"></canvas>
+    <a-scene id="arScene" vr-mode-ui="enabled: false" embedded>
+        <a-assets>
+            <a-asset-item id="hat-model" src="https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj"></a-asset-item>
+        </a-assets>
+
+        <a-entity id="hat" obj-model="obj: #hat-model" position="0 0 -0.5" scale="0.1 0.1 0.1" visible="false"></a-entity>
+        
+        <a-entity camera look-controls></a-entity>
+    </a-scene>
+
     <div id="controls">
         <label>Ajuste Vertical: <input type="range" id="verticalAdjust" min="-50" max="50" value="0"></label><br>
         <label>Ajuste Horizontal: <input type="range" id="horizontalAdjust" min="-50" max="50" value="0"></label><br>
@@ -41,51 +52,14 @@
     <button id="startButton">Iniciar Experiencia AR</button>
     <div id="loadingMessage">Cargando... Por favor, espere.</div>
 
-    <script type="module">
-        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
-        import { OBJLoader } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/loaders/OBJLoader.js';
-        import * as faceLandmarksDetection from 'https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.3/dist/face-landmarks-detection.esm.js';
-        import '@tensorflow/tfjs-core';
-        import '@tensorflow/tfjs-backend-webgl';
-
-        let scene, camera, renderer, hatModel, faceLandmarksDetector;
+    <script>
+        let faceLandmarksDetector;
         const video = document.createElement('video');
+        const hat = document.querySelector('#hat');
 
         async function init() {
             document.getElementById('loadingMessage').style.display = 'block';
             
-            // Configurar Three.js
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('arView'), alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-
-            // Configurar iluminación
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0, 1, 1);
-            scene.add(directionalLight);
-
-            // Cargar modelo de gorra
-            const loader = new OBJLoader();
-            loader.load(
-                'https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj',
-                (obj) => {
-                    hatModel = obj;
-                    hatModel.scale.set(0.1, 0.1, 0.1);
-                    scene.add(hatModel);
-                    console.log('Modelo de gorra cargado con éxito');
-                },
-                (xhr) => {
-                    console.log((xhr.loaded / xhr.total * 100) + '% cargado');
-                },
-                (error) => {
-                    console.error('Error al cargar el modelo:', error);
-                }
-            );
-
-            // Iniciar video
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
@@ -96,7 +70,6 @@
                 return;
             }
 
-            // Cargar modelo de detección de puntos faciales
             faceLandmarksDetector = await faceLandmarksDetection.load(
                 faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
                 { maxFaces: 1 }
@@ -104,14 +77,12 @@
 
             document.getElementById('loadingMessage').style.display = 'none';
             document.getElementById('controls').style.display = 'block';
+            hat.setAttribute('visible', 'true');
 
-            // Iniciar loop de renderizado
             animate();
         }
 
         async function animate() {
-            requestAnimationFrame(animate);
-
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 const faces = await faceLandmarksDetector.estimateFaces({
                     input: video,
@@ -121,39 +92,31 @@
                     updateHatPosition(faces[0]);
                 }
             }
-
-            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
         }
 
         function updateHatPosition(face) {
-            if (!hatModel) return;
-
             const nose = face.landmarks[1];
             const leftEye = face.landmarks[226];
             const rightEye = face.landmarks[446];
 
-            const center = new THREE.Vector3(
-                -(nose[0] - video.videoWidth / 2) / (video.videoWidth / 2),
-                -(nose[1] - video.videoHeight / 2) / (video.videoHeight / 2),
-                -nose[2] / 500
-            );
+            const centerX = -(nose[0] - video.videoWidth / 2) / (video.videoWidth / 2);
+            const centerY = (nose[1] - video.videoHeight / 2) / (video.videoHeight / 2);
+            const centerZ = -nose[2] / 500 - 0.5;
 
             const scale = Math.abs(leftEye[0] - rightEye[0]) / video.videoWidth;
 
-            hatModel.position.copy(center);
-            hatModel.scale.setScalar(scale * document.getElementById('sizeAdjust').value / 100);
+            const verticalAdjust = document.getElementById('verticalAdjust').value / 100;
+            const horizontalAdjust = document.getElementById('horizontalAdjust').value / 100;
+            const sizeAdjust = document.getElementById('sizeAdjust').value / 100;
 
-            hatModel.position.y += document.getElementById('verticalAdjust').value / 100;
-            hatModel.position.x += document.getElementById('horizontalAdjust').value / 100;
+            hat.setAttribute('position', `${centerX + horizontalAdjust} ${-centerY + verticalAdjust} ${centerZ}`);
+            hat.setAttribute('scale', `${0.1 * scale * sizeAdjust} ${0.1 * scale * sizeAdjust} ${0.1 * scale * sizeAdjust}`);
 
-            const faceNormal = new THREE.Vector3().subVectors(
-                new THREE.Vector3(rightEye[0], rightEye[1], rightEye[2]),
-                new THREE.Vector3(leftEye[0], leftEye[1], leftEye[2])
-            ).cross(new THREE.Vector3(0, 0, 1));
-
-            hatModel.rotation.setFromRotationMatrix(
-                new THREE.Matrix4().lookAt(faceNormal, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0))
-            );
+            const dx = rightEye[0] - leftEye[0];
+            const dy = rightEye[1] - leftEye[1];
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            hat.setAttribute('rotation', `0 0 ${-angle}`);
         }
 
         document.getElementById('startButton').addEventListener('click', () => {
@@ -161,10 +124,8 @@
             document.getElementById('startButton').style.display = 'none';
         });
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        ['verticalAdjust', 'horizontalAdjust', 'sizeAdjust'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateHatPosition);
         });
     </script>
 </body>
