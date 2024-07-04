@@ -3,207 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Probador Virtual AR - Gorra</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/3.18.0/tf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+    <title>Probador Virtual de Gorras AR</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-        #arView { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
-        #dropZone {
+        body { margin: 0; overflow: hidden; }
+        #ui-container {
             position: absolute;
-            top: 50%;
+            bottom: 20px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            width: 300px;
-            height: 200px;
-            border: 2px dashed #ccc;
-            border-radius: 20px;
+            transform: translateX(-50%);
+            z-index: 100;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            background-color: rgba(255, 255, 255, 0.8);
+            gap: 10px;
         }
-        #dropZone.highlight { border-color: #000; background-color: rgba(200, 200, 200, 0.8); }
-        #controls { 
-            position: absolute; top: 10px; right: 10px; 
-            background: rgba(0,0,0,0.7); color: white; 
-            padding: 10px; border-radius: 5px; 
-            display: none;
-        }
-        #startButton {
-            margin-top: 10px;
+        button {
             padding: 10px 20px;
             font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
-            display: none;
         }
     </style>
 </head>
 <body>
-    <div id="arView"></div>
-    <div id="dropZone">
-        <p>Arrastra y suelta el archivo OBJ de la gorra aquí</p>
-        <button id="startButton">Iniciar Experiencia AR</button>
+    <div id="ui-container">
+        <button onclick="changeHat('gorra1')">Gorra 1</button>
+        <button onclick="changeHat('gorra2')">Gorra 2</button>
+        <button onclick="changeHat('gorra3')">Gorra 3</button>
     </div>
-    <div id="controls">
-        <label>Ajuste Vertical: <input type="range" id="verticalAdjust" min="-50" max="50" value="0"></label><br>
-        <label>Ajuste Horizontal: <input type="range" id="horizontalAdjust" min="-50" max="50" value="0"></label><br>
-        <label>Tamaño: <input type="range" id="sizeAdjust" min="50" max="150" value="100"></label>
-    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.2.2/aframe-ar.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
 
     <script>
-        let scene, camera, renderer, hatModel, faceDetector;
-        const video = document.createElement('video');
-
-        // Configuración de la zona de arrastrar y soltar
-        const dropZone = document.getElementById('dropZone');
-        const startButton = document.getElementById('startButton');
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlight, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlight, false);
-        });
-
-        function highlight() {
-            dropZone.classList.add('highlight');
-        }
-
-        function unhighlight() {
-            dropZone.classList.remove('highlight');
-        }
-
-        dropZone.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }
-
-        function handleFiles(files) {
-            if (files.length > 0) {
-                const file = files[0];
-                if (file.name.toLowerCase().endsWith('.obj')) {
-                    loadOBJModel(file);
-                } else {
-                    alert('Por favor, arrastra un archivo OBJ válido.');
-                }
-            }
-        }
-
-        function loadOBJModel(file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const contents = event.target.result;
-                const loader = new THREE.OBJLoader();
-                hatModel = loader.parse(contents);
-                scene.add(hatModel);
-                startButton.style.display = 'block';
-                dropZone.querySelector('p').textContent = 'Modelo cargado con éxito';
-            };
-            reader.readAsText(file);
-        }
+        let scene, camera, renderer, hat;
+        let model, video;
 
         async function init() {
-            // Configurar Three.js
+            // Configuración de Three.js
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('arView').appendChild(renderer.domElement);
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
 
-            // Configurar iluminación
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0, 1, 1);
-            scene.add(directionalLight);
+            // Iluminación
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            scene.add(light);
 
-            // Iniciar video
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                video.play();
-            } catch (error) {
-                console.error('Error al acceder a la cámara:', error);
-                alert('No se pudo acceder a la cámara. Por favor, asegúrese de que tiene una cámara disponible y ha dado los permisos necesarios.');
-                return;
-            }
+            // Carga del modelo de gorra inicial
+            await loadHatModel('https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj');
 
-            // Cargar modelo de detección facial
-            faceDetector = await blazeface.load();
+            // Configuración de la detección facial
+            await setupFaceDetection();
 
-            dropZone.style.display = 'none';
-            document.getElementById('controls').style.display = 'block';
-
+            // Iniciar la animación
             animate();
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                detectFace();
-            }
-            renderer.render(scene, camera);
+        async function loadHatModel(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.OBJLoader();
+                loader.load(url, (object) => {
+                    if (hat) scene.remove(hat);
+                    hat = object;
+                    scene.add(hat);
+                    hat.scale.set(0.1, 0.1, 0.1);
+                    resolve();
+                }, undefined, reject);
+            });
+        }
+
+        async function setupFaceDetection() {
+            model = await faceLandmarksDetection.load(
+                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh);
+            
+            video = document.createElement('video');
+            video.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
+            await video.play();
+
+            detectFace();
         }
 
         async function detectFace() {
-            const faces = await faceDetector.estimateFaces(video, false);
-            if (faces.length > 0 && hatModel) {
-                updateHatPosition(faces[0]);
+            const faces = await model.estimateFaces({ input: video });
+            if (faces.length > 0) {
+                const face = faces[0];
+                updateHatPosition(face);
             }
+            requestAnimationFrame(detectFace);
         }
 
         function updateHatPosition(face) {
-            const nose = face.landmarks[2];
-            const leftEye = face.landmarks[1];
-            const rightEye = face.landmarks[0];
-
-            const centerX = -(nose[0] - video.videoWidth / 2) / (video.videoWidth / 2);
-            const centerY = (nose[1] - video.videoHeight / 2) / (video.videoHeight / 2);
-            const centerZ = -0.5;
-
-            const scale = Math.abs(leftEye[0] - rightEye[0]) / video.videoWidth;
-
-            const verticalAdjust = document.getElementById('verticalAdjust').value / 100;
-            const horizontalAdjust = document.getElementById('horizontalAdjust').value / 100;
-            const sizeAdjust = document.getElementById('sizeAdjust').value / 100;
-
-            hatModel.position.set(centerX + horizontalAdjust, -centerY + verticalAdjust, centerZ);
-            hatModel.scale.setScalar(0.1 * scale * sizeAdjust);
-
-            const dx = rightEye[0] - leftEye[0];
-            const dy = rightEye[1] - leftEye[1];
-            const angle = Math.atan2(dy, dx);
-            hatModel.rotation.z = -angle;
+            const nose = face.annotations.noseTip[0];
+            hat.position.set(nose[0], nose[1] + 0.1, -nose[2]);
+            hat.rotation.set(-face.rotation.x, -face.rotation.y, -face.rotation.z);
         }
 
-        startButton.addEventListener('click', init);
+        function animate() {
+            renderer.setAnimationLoop(() => {
+                renderer.render(scene, camera);
+            });
+        }
+
+        function changeHat(hatId) {
+            // En un escenario real, cargaríamos diferentes modelos aquí
+            // Por ahora, solo cambiamos el color de la gorra existente
+            const colors = {
+                gorra1: 0xff0000, // Rojo
+                gorra2: 0x00ff00, // Verde
+                gorra3: 0x0000ff  // Azul
+            };
+            hat.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                    child.material.color.setHex(colors[hatId]);
+                }
+            });
+        }
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        init();
     </script>
 </body>
 </html>
