@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Probador Virtual de Gorras AR</title>
+    <title>Probador Virtual de Gorras AR Avanzado</title>
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #ui-container {
             position: absolute;
             bottom: 20px;
@@ -19,71 +19,191 @@
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 24px;
+        }
+        #ar-not-supported {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
         }
     </style>
 </head>
 <body>
+    <div id="loading-screen">Cargando experiencia AR...</div>
+    <div id="ar-not-supported">
+        Lo sentimos, tu dispositivo no soporta AR.<br>
+        Por favor, intenta con un dispositivo compatible.
+    </div>
     <div id="ui-container">
-        <button onclick="changeHat('gorra1')">Gorra 1</button>
-        <button onclick="changeHat('gorra2')">Gorra 2</button>
-        <button onclick="changeHat('gorra3')">Gorra 3</button>
+        <button onclick="changeHat('gorra1')">Gorra Clásica</button>
+        <button onclick="changeHat('gorra2')">Gorra Deportiva</button>
+        <button onclick="changeHat('gorra3')">Gorra Vintage</button>
     </div>
 
+    <!-- Importación de bibliotecas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.2.2/aframe-ar.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ammo.js/2.0.0/ammo.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/3.18.0/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.3/dist/face-landmarks-detection.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.1.0/redux.min.js"></script>
 
     <script>
-        let scene, camera, renderer, hat;
-        let model, video;
+    // Estado global de la aplicación
+    const initialState = {
+        currentHat: 'gorra1',
+        isARSupported: false,
+        isLoading: true
+    };
 
-        async function init() {
-            // Configuración de Three.js
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.xr.enabled = true;
-            document.body.appendChild(renderer.domElement);
+    // Reducer de Redux
+    function reducer(state = initialState, action) {
+        switch (action.type) {
+            case 'CHANGE_HAT':
+                return { ...state, currentHat: action.payload };
+            case 'SET_AR_SUPPORT':
+                return { ...state, isARSupported: action.payload };
+            case 'SET_LOADING':
+                return { ...state, isLoading: action.payload };
+            default:
+                return state;
+        }
+    }
 
-            // Iluminación
-            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-            scene.add(light);
+    // Crear store de Redux
+    const store = Redux.createStore(reducer);
 
-            // Carga del modelo de gorra inicial
-            await loadHatModel('https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj');
+    // Suscribirse a cambios en el estado
+    store.subscribe(() => {
+        const state = store.getState();
+        document.getElementById('loading-screen').style.display = state.isLoading ? 'flex' : 'none';
+        document.getElementById('ar-not-supported').style.display = !state.isARSupported && !state.isLoading ? 'block' : 'none';
+    });
 
-            // Configuración de la detección facial
-            await setupFaceDetection();
+    let scene, camera, renderer, hat, physicsWorld, headShape;
 
-            // Iniciar la animación
-            animate();
+    async function init() {
+        // Comprobar soporte de AR
+        if ('xr' in navigator) {
+            const supported = await navigator.xr.isSessionSupported('immersive-ar');
+            store.dispatch({ type: 'SET_AR_SUPPORT', payload: supported });
+            if (!supported) {
+                store.dispatch({ type: 'SET_LOADING', payload: false });
+                return;
+            }
+        } else {
+            store.dispatch({ type: 'SET_AR_SUPPORT', payload: false });
+            store.dispatch({ type: 'SET_LOADING', payload: false });
+            return;
         }
 
-        async function loadHatModel(url) {
-            return new Promise((resolve, reject) => {
-                const loader = new THREE.OBJLoader();
-                loader.load(url, (object) => {
-                    if (hat) scene.remove(hat);
-                    hat = object;
-                    scene.add(hat);
-                    hat.scale.set(0.1, 0.1, 0.1);
-                    resolve();
-                }, undefined, reject);
-            });
-        }
+        // Configuración de Three.js
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
 
-        async function setupFaceDetection() {
-            model = await faceLandmarksDetection.load(
-                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh);
-            
-            video = document.createElement('video');
-            video.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
-            await video.play();
+        // Iluminación
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(0, 1, 0);
+        scene.add(directionalLight);
 
-            detectFace();
-        }
+        // Inicializar física
+        initPhysics();
+
+        // Cargar modelo de gorra inicial
+        await loadHatModel('https://example.com/path/to/gorra1.glb');
+
+        // Configurar detección facial
+        await setupFaceDetection();
+
+        // Iniciar animación
+        animate();
+
+        store.dispatch({ type: 'SET_LOADING', payload: false });
+    }
+
+    function initPhysics() {
+        // Configuración de Ammo.js
+        const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+        const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+        const broadphase = new Ammo.btDbvtBroadphase();
+        const solver = new Ammo.btSequentialImpulseConstraintSolver();
+        physicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+        physicsWorld.setGravity(new Ammo.btVector3(0, -9.8, 0));
+
+        // Crear forma de la cabeza (simplificada como una esfera)
+        const headRadius = 0.1; // Ajustar según sea necesario
+        headShape = new Ammo.btSphereShape(headRadius);
+    }
+
+    async function loadHatModel(url) {
+        const loader = new THREE.GLTFLoader();
+        return new Promise((resolve, reject) => {
+            loader.load(url, (gltf) => {
+                if (hat) scene.remove(hat);
+                hat = gltf.scene;
+                scene.add(hat);
+                hat.scale.set(0.1, 0.1, 0.1);
+
+                // Configurar física para la gorra
+                const hatShape = new Ammo.btBoxShape(new Ammo.btVector3(0.1, 0.05, 0.1));
+                const hatTransform = new Ammo.btTransform();
+                hatTransform.setIdentity();
+                hatTransform.setOrigin(new Ammo.btVector3(0, 0.1, 0));
+                const hatMotionState = new Ammo.btDefaultMotionState(hatTransform);
+                const hatMass = 1;
+                const hatInertia = new Ammo.btVector3(0, 0, 0);
+                hatShape.calculateLocalInertia(hatMass, hatInertia);
+                const rbInfo = new Ammo.btRigidBodyConstructionInfo(hatMass, hatMotionState, hatShape, hatInertia);
+                const hatBody = new Ammo.btRigidBody(rbInfo);
+                physicsWorld.addRigidBody(hatBody);
+
+                resolve();
+            }, undefined, reject);
+        });
+    }
+
+    async function setupFaceDetection() {
+        const model = await faceLandmarksDetection.load(
+            faceLandmarksDetection.SupportedPackages.mediapipeFacemesh);
+        
+        const video = document.createElement('video');
+        video.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
+        await video.play();
 
         async function detectFace() {
             const faces = await model.estimateFaces({ input: video });
@@ -94,40 +214,61 @@
             requestAnimationFrame(detectFace);
         }
 
-        function updateHatPosition(face) {
-            const nose = face.annotations.noseTip[0];
-            hat.position.set(nose[0], nose[1] + 0.1, -nose[2]);
-            hat.rotation.set(-face.rotation.x, -face.rotation.y, -face.rotation.z);
-        }
+        detectFace();
+    }
 
-        function animate() {
-            renderer.setAnimationLoop(() => {
-                renderer.render(scene, camera);
-            });
-        }
+    function updateHatPosition(face) {
+        const nose = face.annotations.noseTip[0];
+        hat.position.set(nose[0], nose[1] + 0.1, -nose[2]);
+        hat.rotation.set(-face.rotation.x, -face.rotation.y, -face.rotation.z);
 
-        function changeHat(hatId) {
-            // En un escenario real, cargaríamos diferentes modelos aquí
-            // Por ahora, solo cambiamos el color de la gorra existente
-            const colors = {
-                gorra1: 0xff0000, // Rojo
-                gorra2: 0x00ff00, // Verde
-                gorra3: 0x0000ff  // Azul
-            };
-            hat.traverse((child) => {
-                if (child instanceof THREE.Mesh) {
-                    child.material.color.setHex(colors[hatId]);
-                }
-            });
-        }
+        // Actualizar posición de la cabeza en la simulación física
+        const headTransform = new Ammo.btTransform();
+        headTransform.setIdentity();
+        headTransform.setOrigin(new Ammo.btVector3(nose[0], nose[1], -nose[2]));
+        const headMotionState = new Ammo.btDefaultMotionState(headTransform);
+        const headMass = 0; // La cabeza es estática
+        const headInertia = new Ammo.btVector3(0, 0, 0);
+        const rbInfo = new Ammo.btRigidBodyConstructionInfo(headMass, headMotionState, headShape, headInertia);
+        const headBody = new Ammo.btRigidBody(rbInfo);
+        physicsWorld.addRigidBody(headBody);
+    }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+    function animate() {
+        renderer.setAnimationLoop(() => {
+            // Actualizar física
+            physicsWorld.stepSimulation(1 / 60, 10);
+
+            // Actualizar posición de la gorra basada en la física
+            const hatMotionState = hat.userData.motionState;
+            if (hatMotionState) {
+                const transform = new Ammo.btTransform();
+                hatMotionState.getWorldTransform(transform);
+                const pos = transform.getOrigin();
+                const quat = transform.getRotation();
+                hat.position.set(pos.x(), pos.y(), pos.z());
+                hat.quaternion.set(quat.x(), quat.y(), quat.z(), quat.w());
+            }
+
+            renderer.render(scene, camera);
         });
+    }
 
-        init();
+    async function changeHat(hatId) {
+        store.dispatch({ type: 'CHANGE_HAT', payload: hatId });
+        store.dispatch({ type: 'SET_LOADING', payload: true });
+        await loadHatModel(`https://example.com/path/to/${hatId}.glb`);
+        store.dispatch({ type: 'SET_LOADING', payload: false });
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Iniciar la aplicación
+    init();
     </script>
 </body>
 </html>
