@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Probador Virtual de Gorras AR Mejorado</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
@@ -42,179 +41,184 @@
     <div id="loading-screen">Cargando experiencia AR...</div>
     <div id="error-message"></div>
 
-    <!-- Importación de bibliotecas -->
-    <!-- Usar Three.js versión r132 para asegurar que GLTFLoader esté disponible como THREE.GLTFLoader -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/examples/js/loaders/GLTFLoader.js"></script>
-
-    <!-- Importar MediaPipe Face Mesh y Camera Utils -->
+    <!-- Importación de bibliotecas de MediaPipe Face Mesh y Camera Utils -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
-    <script>
-    let scene, camera, renderer, hatModel, video, videoTexture, faceMesh, cameraFeed;
+    <!-- Importación de módulos de Three.js y GLTFLoader utilizando rutas relativas -->
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
+        import { GLTFLoader } from 'https://unpkg.com/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
 
-    async function init() {
-        try {
-            // Configuración de Three.js
-            scene = new THREE.Scene();
+        let scene, camera, renderer, hatModel, video, videoTexture, faceMesh, cameraFeed;
 
-            // Configuración de la cámara
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5; // Ajustar según sea necesario
+        // Función de inicialización principal
+        async function init() {
+            try {
+                // Configuración de Three.js
+                scene = new THREE.Scene();
 
-            // Configuración del renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            document.body.appendChild(renderer.domElement);
+                // Configuración de la cámara
+                camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.z = 0; // Posición en el centro
 
-            // Añadir video como fondo
-            video = document.createElement('video');
-            video.style.display = 'none';
-            document.body.appendChild(video);
+                // Configuración del renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.body.appendChild(renderer.domElement);
 
-            // Solicitar acceso a la cámara
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-            video.srcObject = stream;
-            await video.play();
+                // Añadir video como fondo
+                video = document.createElement('video');
+                video.style.display = 'none';
+                document.body.appendChild(video);
 
-            // Crear textura de video
-            videoTexture = new THREE.VideoTexture(video);
-            videoTexture.minFilter = THREE.LinearFilter;
-            videoTexture.magFilter = THREE.LinearFilter;
-            videoTexture.format = THREE.RGBFormat;
+                // Solicitar acceso a la cámara
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                video.srcObject = stream;
+                await video.play();
 
-            // Crear plano para mostrar el video
-            const videoGeometry = new THREE.PlaneGeometry(16, 9);
-            const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
-            const videoMesh = new THREE.Mesh(videoGeometry, videoMaterial);
-            videoMesh.scale.set(0.1, 0.1, 0.1); // Ajustar según sea necesario
-            videoMesh.position.z = -5; // Detrás de otros objetos
-            scene.add(videoMesh);
+                // Crear textura de video
+                videoTexture = new THREE.VideoTexture(video);
+                videoTexture.minFilter = THREE.LinearFilter;
+                videoTexture.magFilter = THREE.LinearFilter;
+                videoTexture.format = THREE.RGBFormat;
 
-            // Iluminación
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-            scene.add(ambientLight);
+                // Crear plano para mostrar el video
+                const videoGeometry = new THREE.PlaneGeometry(2, 2);
+                const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
+                const videoMesh = new THREE.Mesh(videoGeometry, videoMaterial);
+                videoMesh.position.z = -1; // Detrás de otros objetos
+                scene.add(videoMesh);
 
-            // Cargar modelo de gorra
-            await loadHatModel('https://nicolascumbej.github.io/arexperience/baseball_cap.glb');
+                // Iluminación
+                const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+                scene.add(ambientLight);
 
-            // Configurar detección facial con MediaPipe Face Mesh
-            setupFaceMesh();
+                // Cargar modelo de gorra
+                await loadHatModel('https://nicolascumbej.github.io/arexperience/baseball_cap.glb');
 
-            // Iniciar animación
-            animate();
+                // Configurar detección facial con MediaPipe Face Mesh
+                setupFaceMesh();
 
-            // Ocultar pantalla de carga
-            document.getElementById('loading-screen').style.display = 'none';
-        } catch (error) {
-            console.error('Error durante la inicialización:', error);
-            showError('Hubo un error al iniciar la experiencia AR. Por favor, recarga la página y verifica los permisos de la cámara.');
+                // Iniciar animación
+                animate();
+
+                // Ocultar pantalla de carga
+                document.getElementById('loading-screen').style.display = 'none';
+            } catch (error) {
+                console.error('Error durante la inicialización:', error);
+                showError('Hubo un error al iniciar la experiencia AR. Por favor, recarga la página y verifica los permisos de la cámara.');
+            }
         }
-    }
 
-    function loadHatModel(url) {
-        return new Promise((resolve, reject) => {
-            const loader = new THREE.GLTFLoader();
-            loader.load(
-                url,
-                (gltf) => {
-                    hatModel = gltf.scene;
-                    hatModel.scale.set(1, 1, 1); // Ajusta la escala según sea necesario
-                    scene.add(hatModel);
-                    resolve();
-                },
-                undefined,
-                (error) => {
-                    console.error('Error cargando el modelo:', error);
-                    reject(error);
+        // Función para cargar el modelo de la gorra
+        function loadHatModel(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new GLTFLoader();
+                loader.load(
+                    url,
+                    (gltf) => {
+                        hatModel = gltf.scene;
+                        hatModel.scale.set(0.15, 0.15, 0.15); // Ajusta la escala según sea necesario
+                        scene.add(hatModel);
+                        resolve();
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Error cargando el modelo:', error);
+                        reject(error);
+                    }
+                );
+            });
+        }
+
+        // Función para configurar MediaPipe Face Mesh
+        function setupFaceMesh() {
+            faceMesh = new FaceMesh.FaceMesh({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
                 }
-            );
-        });
-    }
+            });
 
-    function setupFaceMesh() {
-        faceMesh = new FaceMesh.FaceMesh({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            faceMesh.onResults(onResults);
+
+            cameraFeed = new CameraUtils.Camera(video, {
+                onFrame: async () => {
+                    await faceMesh.send({ image: video });
+                },
+                width: 640,
+                height: 480
+            });
+            cameraFeed.start();
+        }
+
+        // Función de resultados de MediaPipe
+        function onResults(results) {
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const landmarks = results.multiFaceLandmarks[0];
+
+                // Obtener puntos clave para posición y rotación
+                const foreheadLandmark = landmarks[10]; // Punto en la frente
+                const chinLandmark = landmarks[152]; // Punto en el mentón
+                const leftEarLandmark = landmarks[234];
+                const rightEarLandmark = landmarks[454];
+
+                // Calcular posición promedio de la cabeza
+                const headCenter = {
+                    x: (foreheadLandmark.x + chinLandmark.x) / 2,
+                    y: (foreheadLandmark.y + chinLandmark.y) / 2,
+                    z: (foreheadLandmark.z + chinLandmark.z) / 2
+                };
+
+                // Convertir coordenadas normalizadas a coordenadas de Three.js
+                const x = (headCenter.x - 0.5) * 2;
+                const y = -(headCenter.y - 0.5) * 2;
+
+                // Actualizar posición de la gorra
+                hatModel.position.set(x, y + 0.2, 0); // Ajusta según sea necesario
+
+                // Calcular rotación en el eje Y (yaw)
+                const dx = rightEarLandmark.x - leftEarLandmark.x;
+                const dy = rightEarLandmark.z - leftEarLandmark.z;
+                const yaw = Math.atan2(dy, dx);
+
+                hatModel.rotation.set(0, yaw, 0);
+            }
+        }
+
+        // Función de animación
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Función para mostrar errores al usuario
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            document.getElementById('loading-screen').style.display = 'none';
+        }
+
+        // Listener para redimensionar la ventana
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
             }
         });
 
-        faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-
-        faceMesh.onResults(onResults);
-
-        cameraFeed = new CameraUtils.Camera(video, {
-            onFrame: async () => {
-                await faceMesh.send({ image: video });
-            },
-            width: 640,
-            height: 480
-        });
-        cameraFeed.start();
-    }
-
-    function onResults(results) {
-        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-            const landmarks = results.multiFaceLandmarks[0];
-
-            // Obtener puntos clave para posición y rotación
-            const foreheadLandmark = landmarks[10]; // Punto en la frente
-            const chinLandmark = landmarks[152]; // Punto en el mentón
-            const leftEarLandmark = landmarks[234];
-            const rightEarLandmark = landmarks[454];
-
-            // Calcular posición promedio de la cabeza
-            const headCenter = {
-                x: (foreheadLandmark.x + chinLandmark.x) / 2,
-                y: (foreheadLandmark.y + chinLandmark.y) / 2,
-                z: (foreheadLandmark.z + chinLandmark.z) / 2
-            };
-
-            // Convertir coordenadas normalizadas a coordenadas de Three.js
-            const x = (headCenter.x - 0.5) * 2;
-            const y = -(headCenter.y - 0.5) * 2;
-
-            // Actualizar posición de la gorra
-            hatModel.position.set(x, y + 0.2, 0); // Ajusta según sea necesario
-
-            // Calcular rotación en el eje Y (yaw)
-            const dx = rightEarLandmark.x - leftEarLandmark.x;
-            const dy = rightEarLandmark.z - leftEarLandmark.z;
-            const yaw = Math.atan2(dy, dx);
-
-            hatModel.rotation.set(0, yaw, 0);
-        }
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    }
-
-    function showError(message) {
-        const errorElement = document.getElementById('error-message');
-        errorElement.textContent = message;
-        errorElement.style.display = 'block';
-        document.getElementById('loading-screen').style.display = 'none';
-    }
-
-    window.addEventListener('resize', () => {
-        if (camera && renderer) {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-    });
-
-    // Iniciar la aplicación
-    init();
+        // Iniciar la aplicación
+        init();
     </script>
 </body>
 </html>
