@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Probador Virtual de Gorras AR Simplificado</title>
+    <title>Probador Virtual de Gorras AR Mejorado</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #loading-screen {
@@ -32,6 +32,9 @@
             text-align: center;
             display: none;
         }
+        video {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -39,36 +42,52 @@
     <div id="error-message"></div>
 
     <!-- Importación de bibliotecas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
 
     <script>
-    let scene, camera, renderer, hat;
+    let scene, camera, renderer, hatModel, video, videoTexture;
 
     async function init() {
         try {
             // Configuración de Three.js
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
+            // Añadir video como fondo
+            video = document.createElement('video');
+            video.autoplay = true;
+            video.playsInline = true;
+            video.style.display = 'none';
+            document.body.appendChild(video);
+
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+
+            videoTexture = new THREE.VideoTexture(video);
+            const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
+            const videoGeometry = new THREE.PlaneGeometry(16, 9);
+            videoGeometry.scale(1, -1, 1);
+            const videoMesh = new THREE.Mesh(videoGeometry, videoMaterial);
+            videoMesh.position.z = -5;
+            scene.add(videoMesh);
+
             // Iluminación
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0, 1, 0);
-            scene.add(directionalLight);
 
             // Cargar modelo de gorra
-            await loadHatModel('https://nicolascumbej.github.io/arexperience/tmp2h0xvw1a.obj');
+            await loadHatModel('https://nicolascumbej.github.io/arexperience/baseball_cap.glb');
 
-            // Configurar detección facial
-            await setupFaceDetection();
+            // Configurar detección facial con MediaPipe Face Mesh
+            setupFaceMesh();
 
             // Iniciar animación
             animate();
@@ -82,12 +101,12 @@
 
     async function loadHatModel(url) {
         return new Promise((resolve, reject) => {
-            const loader = new THREE.OBJLoader();
+            const loader = new THREE.GLTFLoader();
             loader.load(url, 
-                (object) => {
-                    hat = object;
-                    scene.add(hat);
-                    hat.scale.set(0.1, 0.1, 0.1);
+                (gltf) => {
+                    hatModel = gltf.scene;
+                    hatModel.scale.set(1, 1, 1);
+                    scene.add(hatModel);
                     resolve();
                 },
                 undefined,
@@ -99,35 +118,44 @@
         });
     }
 
-    async function setupFaceDetection() {
-        try {
-            const model = await faceLandmarksDetection.load(
-                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh);
-            
-            const video = document.createElement('video');
-            video.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
-            await video.play();
-
-            async function detectFace() {
-                const faces = await model.estimateFaces({ input: video });
-                if (faces.length > 0) {
-                    const face = faces[0];
-                    updateHatPosition(face);
-                }
-                requestAnimationFrame(detectFace);
+    function setupFaceMesh() {
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
             }
+        });
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
 
-            detectFace();
-        } catch (error) {
-            console.error('Error en la detección facial:', error);
-            showError('No se pudo acceder a la cámara. Asegúrate de que tienes una cámara conectada y has dado permiso para usarla.');
-        }
+        faceMesh.onResults(onResults);
+
+        const cameraFeed = new Camera(video, {
+            onFrame: async () => {
+                await faceMesh.send({ image: video });
+            },
+            width: 1280,
+            height: 720
+        });
+        cameraFeed.start();
     }
 
-    function updateHatPosition(face) {
-        const nose = face.annotations.noseTip[0];
-        hat.position.set(nose[0], nose[1] + 0.1, -nose[2]);
-        hat.rotation.set(-face.rotation.x, -face.rotation.y, -face.rotation.z);
+    function onResults(results) {
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            const landmarks = results.multiFaceLandmarks[0];
+            const nose = landmarks[1]; // Índice aproximado de la nariz
+
+            // Convertir coordenadas normalizadas a coordenadas del mundo
+            const x = (nose.x - 0.5) * window.innerWidth / window.innerHeight * 2;
+            const y = -(nose.y - 0.5) * 2;
+
+            // Actualizar posición y rotación del modelo
+            hatModel.position.set(x, y + 0.2, 0);
+            // Opcional: Calcular rotación basada en otros puntos
+        }
     }
 
     function animate() {
