@@ -60,7 +60,7 @@
 
                 // Configuración de la cámara
                 camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.z = 0; // Posición en el centro
+                camera.position.z = 5; // Posición alejada para visualizar mejor la gorra
 
                 // Configuración del renderer
                 renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -85,10 +85,10 @@
                 videoTexture.format = THREE.RGBFormat;
 
                 // Crear plano para mostrar el video
-                const videoGeometry = new THREE.PlaneGeometry(2, 2);
+                const videoGeometry = new THREE.PlaneGeometry(16, 9);
                 const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
                 const videoMesh = new THREE.Mesh(videoGeometry, videoMaterial);
-                videoMesh.position.z = -1; // Detrás de otros objetos
+                videoMesh.position.z = -10; // Detrás de otros objetos
                 scene.add(videoMesh);
 
                 // Iluminación
@@ -120,11 +120,13 @@
                     url,
                     (gltf) => {
                         hatModel = gltf.scene;
-                        hatModel.scale.set(0.15, 0.15, 0.15); // Ajusta la escala según sea necesario
+                        hatModel.scale.set(0.5, 0.5, 0.5); // Ajusta la escala según sea necesario
                         scene.add(hatModel);
                         resolve();
                     },
-                    undefined,
+                    (xhr) => {
+                        console.log(`Cargando modelo: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% cargado`);
+                    },
                     (error) => {
                         console.error('Error cargando el modelo:', error);
                         reject(error);
@@ -162,7 +164,7 @@
 
         // Función de resultados de MediaPipe
         function onResults(results) {
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && hatModel) {
                 const landmarks = results.multiFaceLandmarks[0];
 
                 // Obtener puntos clave para posición y rotación
@@ -179,11 +181,11 @@
                 };
 
                 // Convertir coordenadas normalizadas a coordenadas de Three.js
-                const x = (headCenter.x - 0.5) * 2;
+                const x = (headCenter.x - 0.5) * 2 * (window.innerWidth / window.innerHeight);
                 const y = -(headCenter.y - 0.5) * 2;
 
                 // Actualizar posición de la gorra
-                hatModel.position.set(x, y + 0.2, 0); // Ajusta según sea necesario
+                hatModel.position.set(x, y + 0.5, 0); // Ajusta según sea necesario
 
                 // Calcular rotación en el eje Y (yaw)
                 const dx = rightEarLandmark.x - leftEarLandmark.x;
